@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:keepScreenOn="true"
-        app:controller_show_timeout_ms="0"
+        app:show_timeout="3000"
         app:use_controller="false" />
 
     <ImageView

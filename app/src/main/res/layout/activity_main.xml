@@ -7,17 +7,66 @@
     <FrameLayout
         android:id="@+id/content_container"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginBottom="72dp" />
+        android:layout_height="match_parent" />
 
-    <com.google.android.material.bottomnavigation.BottomNavigationView
-        android:id="@+id/bottom_nav"
+    <LinearLayout
+        android:id="@+id/bottom_bar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="50dp"
         android:layout_gravity="bottom"
-        android:background="@android:color/white"
-        app:itemIconTint="@color/nav_item_color"
-        app:itemTextColor="@color/nav_item_color"
-        app:menu="@menu/menu_bottom_nav" />
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:background="@android:color/white">
+
+        <TextView
+            android:id="@+id/nav_home"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="首页"
+            android:textSize="15sp"
+            android:textColor="#000" />
+
+        <TextView
+            android:id="@+id/nav_friends"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="朋友"
+            android:textSize="15sp"
+            android:textColor="#000" />
+
+        <ImageView
+            android:id="@+id/nav_add"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:src="@android:drawable/ic_input_add"
+            android:scaleType="center" />
+
+        <TextView
+            android:id="@+id/nav_message"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="消息"
+            android:textSize="15sp"
+            android:textColor="#000" />
+
+        <TextView
+            android:id="@+id/nav_profile"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="我"
+            android:textSize="15sp"
+            android:textColor="#000" />
+
+    </LinearLayout>
+
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
