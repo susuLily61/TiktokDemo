@@ -20,7 +20,6 @@ import com.BDhomework.tiktokdemo.R;
 import com.BDhomework.tiktokdemo.comment.CommentBottomSheetDialog;
 import com.BDhomework.tiktokdemo.model.FeedItem;
 import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.ui.PlayerView;
 
 public class VideoPageFragment extends Fragment {
@@ -28,7 +27,7 @@ public class VideoPageFragment extends Fragment {
     private static final String ARG_FEED = "arg_feed";
 
     private FeedItem feedItem;
-    private ExoPlayer player;
+    private String videoUrl;
     private PlayerView playerView;
     private TextView likeCountView;
     private boolean liked = false;
@@ -47,6 +46,9 @@ public class VideoPageFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_video_page, container, false);
         feedItem = (FeedItem) getArguments().getSerializable(ARG_FEED);
+        if (feedItem != null) {
+            videoUrl = feedItem.getVideoUrl();
+        }
 
         playerView = root.findViewById(R.id.video_player_view);
         TextView title = root.findViewById(R.id.video_title);
@@ -83,7 +85,6 @@ public class VideoPageFragment extends Fragment {
         shareButton.setOnClickListener(v -> Toast.makeText(requireContext(), "分享功能待接入", Toast.LENGTH_SHORT).show());
         likeButton.setOnClickListener(v -> toggleLike());
 
-        preparePlayer();
         return root;
     }
 
@@ -95,45 +96,31 @@ public class VideoPageFragment extends Fragment {
     }
 
     private void togglePlayPause(ImageView pauseIndicator) {
+        ExoPlayer player = VideoPlayerManager.getInstance(requireContext()).getPlayer();
         if (player == null) return;
         boolean playWhenReady = player.getPlayWhenReady();
         player.setPlayWhenReady(!playWhenReady);
         pauseIndicator.setVisibility(playWhenReady ? View.VISIBLE : View.GONE);
     }
 
-    private void preparePlayer() {
-        player = new ExoPlayer.Builder(requireContext()).build();
-        playerView.setPlayer(player);
-        if (feedItem != null) {
-            MediaItem mediaItem = MediaItem.fromUri(feedItem.getVideoUrl());
-            player.setMediaItem(mediaItem);
-        }
-        player.setPlayWhenReady(true);
-        player.prepare();
-    }
-
     @Override
     public void onResume() {
         super.onResume();
-        if (player != null) {
-            player.setPlayWhenReady(true);
+        if (videoUrl != null) {
+            VideoPlayerManager.getInstance(requireContext()).play(playerView, videoUrl);
         }
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        if (player != null) {
-            player.setPlayWhenReady(false);
-        }
+        VideoPlayerManager.getInstance(requireContext()).pause();
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (player != null) {
-            player.release();
-            player = null;
-        }
+        VideoPlayerManager.getInstance(requireContext()).detach(playerView);
+        playerView = null;
     }
 }

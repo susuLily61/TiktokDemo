@@ -16,6 +16,7 @@ public class VideoFeedActivity extends AppCompatActivity {
 
     public static final String EXTRA_FEED_LIST = "extra_feed_list";
     public static final String EXTRA_FEED_ID = "extra_feed_id";
+    public static final String EXTRA_FEED_POSITION = "extra_feed_position";
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -25,6 +26,7 @@ public class VideoFeedActivity extends AppCompatActivity {
         ViewPager2 viewPager2 = findViewById(R.id.video_pager);
         ArrayList<FeedItem> feedItems = (ArrayList<FeedItem>) getIntent().getSerializableExtra(EXTRA_FEED_LIST);
         String selectedId = getIntent().getStringExtra(EXTRA_FEED_ID);
+        int startPosition = getIntent().getIntExtra(EXTRA_FEED_POSITION, -1);
 
         if (feedItems == null) {
             finish();
@@ -35,13 +37,29 @@ public class VideoFeedActivity extends AppCompatActivity {
         viewPager2.setAdapter(adapter);
         viewPager2.setOrientation(ViewPager2.ORIENTATION_VERTICAL);
 
-        int startPosition = 0;
-        for (int i = 0; i < feedItems.size(); i++) {
-            if (feedItems.get(i).getId().equals(selectedId)) {
-                startPosition = i;
-                break;
+        if (startPosition < 0 && selectedId != null) {
+            for (int i = 0; i < feedItems.size(); i++) {
+                if (feedItems.get(i).getId().equals(selectedId)) {
+                    startPosition = i;
+                    break;
+                }
             }
         }
+        if (startPosition < 0) {
+            startPosition = 0;
+        }
         viewPager2.setCurrentItem(startPosition, false);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        VideoPlayerManager.getInstance(this).pause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        VideoPlayerManager.getInstance(this).release();
     }
 }

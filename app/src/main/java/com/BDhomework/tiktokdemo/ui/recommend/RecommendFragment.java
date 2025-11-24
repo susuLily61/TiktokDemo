@@ -83,11 +83,14 @@ public class RecommendFragment extends Fragment implements FeedAdapter.OnFeedCli
     }
 
     @Override
-    public void onFeedClick(FeedItem item) {
+    public void onFeedClick(int position, FeedItem item) {
         List<FeedItem> current = viewModel.getFeedLiveData().getValue();
-        Intent intent = new Intent(requireContext(), VideoFeedActivity.class);
-        intent.putExtra(VideoFeedActivity.EXTRA_FEED_LIST, new ArrayList<>(current));
-        intent.putExtra(VideoFeedActivity.EXTRA_FEED_ID, item.getId());
-        startActivity(intent);
+        if (current != null) {
+            Intent intent = new Intent(requireContext(), VideoFeedActivity.class);
+            intent.putExtra(VideoFeedActivity.EXTRA_FEED_LIST, new ArrayList<>(current));
+            intent.putExtra(VideoFeedActivity.EXTRA_FEED_ID, item.getId());
+            intent.putExtra(VideoFeedActivity.EXTRA_FEED_POSITION, position);
+            startActivity(intent);
+        }
     }
 }

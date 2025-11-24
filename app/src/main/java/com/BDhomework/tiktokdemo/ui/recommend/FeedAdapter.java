@@ -21,7 +21,7 @@ import java.util.List;
 public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder> {
 
     public interface OnFeedClickListener {
-        void onFeedClick(FeedItem item);
+        void onFeedClick(int position, FeedItem item);
     }
 
     private final List<FeedItem> data = new ArrayList<>();
@@ -90,7 +90,10 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder
 
             itemView.setOnClickListener(v -> {
                 if (listener != null) {
-                    listener.onFeedClick(item);
+                    int position = getBindingAdapterPosition();
+                    if (position != RecyclerView.NO_POSITION) {
+                        listener.onFeedClick(position, item);
+                    }
                 }
             });
         }
