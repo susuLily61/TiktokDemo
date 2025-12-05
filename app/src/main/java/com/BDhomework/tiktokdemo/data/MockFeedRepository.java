@@ -20,6 +20,15 @@ public class MockFeedRepository {
             "https://images.unsplash.com/photo-1489515217757-5fd1be406fef"
     );
 
+    private static final List<String> DESCRIPTION_POOL = Arrays.asList(
+            "愿你有一双匡威，陪你走遍天涯 #匡威1970s @汤圆club",
+            "夕阳下的海风刚刚好，下一站去哪里？",
+            "城市夜跑的第 12 天，坚持总会有收获。",
+            "这一刻想把天空的颜色分享给你们。",
+            "周末露营记：烟火气和星空都很治愈。",
+            "记录下这一条街的老味道和新气息。"
+    );
+
     private static final String SAMPLE_VIDEO = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
 
     public List<FeedItem> loadFeed(int page) {
@@ -30,11 +39,13 @@ public class MockFeedRepository {
             String author = "用户" + ((page * 10) + i + 100);
             String cover = COVER_POOL.get(i % COVER_POOL.size()) + "?auto=format&fit=crop&w=800&q=80";
             int likes = 1000 + (page * 37) + i * 13;
+            String description = DESCRIPTION_POOL.get(i % DESCRIPTION_POOL.size());
             list.add(new FeedItem(id, title, author,
                     "https://images.unsplash.com/profile-1502680755645-4c502e91c95f",
                     cover,
                     SAMPLE_VIDEO,
-                    likes));
+                    likes,
+                    description));
         }
         return list;
     }
