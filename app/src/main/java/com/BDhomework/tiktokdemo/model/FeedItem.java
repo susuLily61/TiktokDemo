@@ -10,8 +10,9 @@ public class FeedItem implements Serializable {
     private final String coverUrl;
     private final String videoUrl;
     private final int likeCount;
+    private final String description;
 
-    public FeedItem(String id, String title, String authorName, String avatarUrl, String coverUrl, String videoUrl, int likeCount) {
+    public FeedItem(String id, String title, String authorName, String avatarUrl, String coverUrl, String videoUrl, int likeCount, String description) {
         this.id = id;
         this.title = title;
         this.authorName = authorName;
@@ -19,6 +20,7 @@ public class FeedItem implements Serializable {
         this.coverUrl = coverUrl;
         this.videoUrl = videoUrl;
         this.likeCount = likeCount;
+        this.description = description;
     }
 
     public String getId() {
@@ -47,5 +49,9 @@ public class FeedItem implements Serializable {
 
     public int getLikeCount() {
         return likeCount;
+    }
+
+    public String getDescription() {
+        return description;
     }
 }
