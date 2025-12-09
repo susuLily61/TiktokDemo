@@ -87,7 +87,7 @@ public class VideoPageFragment extends Fragment {
         commentCountView = root.findViewById(R.id.video_comment_count);
         collectCountView = root.findViewById(R.id.video_collect_count);
         shareCountView = root.findViewById(R.id.video_share_count);
-        ImageButton commentButton = root.findViewById(R.id.video_comment_button);
+        ImageView commentButton = root.findViewById(R.id.video_comment_button);
         ImageView shareButton = root.findViewById(R.id.video_share_button);
         likeButton = root.findViewById(R.id.video_like_button);
         collectButton = root.findViewById(R.id.video_collect_button);
