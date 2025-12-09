@@ -4,7 +4,7 @@ import android.os.Bundle;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.viewpager2.widget.ViewPager2;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.BDhomework.tiktokdemo.R;
 import com.BDhomework.tiktokdemo.model.FeedItem;
@@ -22,8 +22,6 @@ public class VideoFeedActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_feed);
-
-        ViewPager2 viewPager2 = findViewById(R.id.video_pager);
         ArrayList<FeedItem> feedItems = (ArrayList<FeedItem>) getIntent().getSerializableExtra(EXTRA_FEED_LIST);
         String selectedId = getIntent().getStringExtra(EXTRA_FEED_ID);
         int startPosition = getIntent().getIntExtra(EXTRA_FEED_POSITION, -1);
@@ -32,10 +30,6 @@ public class VideoFeedActivity extends AppCompatActivity {
             finish();
             return;
         }
-
-        VideoPagerAdapter adapter = new VideoPagerAdapter(this, feedItems);
-        viewPager2.setAdapter(adapter);
-        viewPager2.setOrientation(ViewPager2.ORIENTATION_VERTICAL);
 
         if (startPosition < 0 && selectedId != null) {
             for (int i = 0; i < feedItems.size(); i++) {
@@ -48,18 +42,11 @@ public class VideoFeedActivity extends AppCompatActivity {
         if (startPosition < 0) {
             startPosition = 0;
         }
-        viewPager2.setCurrentItem(startPosition, false);
-    }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        VideoPlayerManager.getInstance(this).pause();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        VideoPlayerManager.getInstance(this).release();
+        if (savedInstanceState == null) {
+            VideoFeedFragment fragment = VideoFeedFragment.newInstance(feedItems, startPosition);
+            FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
+            transaction.replace(R.id.video_feed_container, fragment).commit();
+        }
     }
 }

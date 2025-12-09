@@ -39,6 +39,7 @@ import java.util.Random;
 public class VideoPageFragment extends Fragment {
 
     private static final String ARG_FEED = "arg_feed";
+    private static final String ARG_POSITION = "arg_position";
 
     private FeedItem feedItem;
     private String videoUrl;
@@ -61,13 +62,29 @@ public class VideoPageFragment extends Fragment {
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private GestureDetectorCompat gestureDetector;
     private boolean playerListenerAttached = false;
+    private ExoPlayer currentPlayer;
+    private Player.Listener playerListener;
+    private int position;
 
-    public static VideoPageFragment newInstance(FeedItem item) {
+    public static VideoPageFragment newInstance(FeedItem item, int position) {
         VideoPageFragment fragment = new VideoPageFragment();
         Bundle args = new Bundle();
         args.putSerializable(ARG_FEED, item);
+        args.putInt(ARG_POSITION, position);
         fragment.setArguments(args);
         return fragment;
+    }
+
+    public String getVideoUrl() {
+        return videoUrl;
+    }
+
+    public int getPosition() {
+        return position;
+    }
+
+    public PlayerView getPlayerView() {
+        return playerView;
     }
 
     @Nullable
@@ -75,6 +92,7 @@ public class VideoPageFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_video_page, container, false);
         feedItem = (FeedItem) getArguments().getSerializable(ARG_FEED);
+        position = getArguments().getInt(ARG_POSITION, -1);
         if (feedItem != null) {
             videoUrl = feedItem.getVideoUrl();
         }
@@ -154,7 +172,9 @@ public class VideoPageFragment extends Fragment {
             @Override
             public void onScrubStart(TimeBar timeBar, long position) {
                 isScrubbing = true;
-                VideoPlayerManager.getInstance(requireContext()).pause();
+                if (currentPlayer != null) {
+                    currentPlayer.setPlayWhenReady(false);
+                }
             }
 
             @Override
@@ -165,10 +185,9 @@ public class VideoPageFragment extends Fragment {
             @Override
             public void onScrubStop(TimeBar timeBar, long position, boolean canceled) {
                 isScrubbing = false;
-                ExoPlayer player = VideoPlayerManager.getInstance(requireContext()).getPlayer();
-                if (player != null) {
-                    player.seekTo(position);
-                    player.setPlayWhenReady(true);
+                if (currentPlayer != null) {
+                    currentPlayer.seekTo(position);
+                    currentPlayer.setPlayWhenReady(true);
                 }
                 scheduleProgressUpdate();
             }
@@ -251,10 +270,9 @@ public class VideoPageFragment extends Fragment {
     }
 
     private void togglePlayPause(ImageView pauseIndicator) {
-        ExoPlayer player = VideoPlayerManager.getInstance(requireContext()).getPlayer();
-        if (player == null) return;
-        boolean playWhenReady = player.getPlayWhenReady();
-        player.setPlayWhenReady(!playWhenReady);
+        if (currentPlayer == null) return;
+        boolean playWhenReady = currentPlayer.getPlayWhenReady();
+        currentPlayer.setPlayWhenReady(!playWhenReady);
         pauseIndicator.setVisibility(playWhenReady ? View.VISIBLE : View.GONE);
     }
 
@@ -264,48 +282,57 @@ public class VideoPageFragment extends Fragment {
         dialog.show(getChildFragmentManager(), "comments");
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-        if (videoUrl != null) {
-            VideoPlayerManager.getInstance(requireContext()).play(playerView, videoUrl);
-            attachPlayerListener();
-            scheduleProgressUpdate();
+    public void bindPlayer(@NonNull ExoPlayer player, @NonNull String url, boolean playWhenReady) {
+        if (currentPlayer != null && currentPlayer != player && playerListenerAttached) {
+            currentPlayer.removeListener(playerListener);
+            playerListenerAttached = false;
         }
+        currentPlayer = player;
+        videoUrl = url;
+        playerView.setPlayer(player);
+        attachPlayerListener();
+        player.setPlayWhenReady(playWhenReady);
+        scheduleProgressUpdate();
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
-        VideoPlayerManager.getInstance(requireContext()).pause();
+    public void clearPlayer() {
+        if (currentPlayer != null && playerListenerAttached) {
+            currentPlayer.removeListener(playerListener);
+        }
+        playerListenerAttached = false;
+        currentPlayer = null;
+        if (playerView != null) {
+            playerView.setPlayer(null);
+        }
         progressHandler.removeCallbacksAndMessages(null);
+        updateTimeBar();
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        VideoPlayerManager.getInstance(requireContext()).detach(playerView);
+        clearPlayer();
         playerView = null;
-        progressHandler.removeCallbacksAndMessages(null);
     }
 
     private void attachPlayerListener() {
-        if (playerListenerAttached) {
+        if (playerListenerAttached || currentPlayer == null) {
             return;
         }
-        ExoPlayer player = VideoPlayerManager.getInstance(requireContext()).getPlayer();
-        if (player == null) return;
-        player.addListener(new Player.Listener() {
-            @Override
-            public void onTimelineChanged(@NonNull com.google.android.exoplayer2.Timeline timeline, int reason) {
-                updateTimeBar();
-            }
+        if (playerListener == null) {
+            playerListener = new Player.Listener() {
+                @Override
+                public void onTimelineChanged(@NonNull com.google.android.exoplayer2.Timeline timeline, int reason) {
+                    updateTimeBar();
+                }
 
-            @Override
-            public void onPlaybackStateChanged(int playbackState) {
-                updateTimeBar();
-            }
-        });
+                @Override
+                public void onPlaybackStateChanged(int playbackState) {
+                    updateTimeBar();
+                }
+            };
+        }
+        currentPlayer.addListener(playerListener);
         playerListenerAttached = true;
     }
 
@@ -318,7 +345,7 @@ public class VideoPageFragment extends Fragment {
         @Override
         public void run() {
             updateTimeBar();
-            if (isResumed() && !isScrubbing) {
+            if (isResumed() && !isScrubbing && currentPlayer != null) {
                 progressHandler.postDelayed(this, 500);
             }
         }
@@ -326,12 +353,14 @@ public class VideoPageFragment extends Fragment {
 
     private void updateTimeBar() {
         if (timeBar == null) return;
-        ExoPlayer player = VideoPlayerManager.getInstance(requireContext()).getPlayer();
-        if (player == null) return;
+        if (currentPlayer == null) {
+            timeBar.setEnabled(false);
+            return;
+        }
 
-        long duration = player.getDuration();
-        long position = player.getCurrentPosition();
-        long buffered = player.getBufferedPosition();
+        long duration = currentPlayer.getDuration();
+        long position = currentPlayer.getCurrentPosition();
+        long buffered = currentPlayer.getBufferedPosition();
         if (duration == C.TIME_UNSET || duration <= 0) {
             timeBar.setEnabled(false);
             return;
