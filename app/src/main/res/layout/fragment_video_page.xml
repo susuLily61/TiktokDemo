@@ -18,6 +18,13 @@
         app:use_controller="false" />
 
     <ImageView
+        android:id="@+id/video_cover"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:background="#000000" />
+
+    <ImageView
         android:id="@+id/video_pause_indicator"
         android:layout_width="72dp"
         android:layout_height="72dp"

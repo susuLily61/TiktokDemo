@@ -83,7 +83,8 @@ public class VideoFeedFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        playerManager.release();
+        // 临时先不要彻底释放播放器
+        //playerManager.release();
     }
 
     private void handlePageSelected(int position) {

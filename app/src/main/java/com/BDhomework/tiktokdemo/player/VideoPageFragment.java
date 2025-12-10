@@ -66,6 +66,9 @@ public class VideoPageFragment extends Fragment {
     private Player.Listener playerListener;
     private int position;
 
+    private ImageView coverView;
+
+
     public static VideoPageFragment newInstance(FeedItem item, int position) {
         VideoPageFragment fragment = new VideoPageFragment();
         Bundle args = new Bundle();
@@ -98,6 +101,9 @@ public class VideoPageFragment extends Fragment {
         }
 
         playerView = root.findViewById(R.id.video_player_view);
+        coverView = root.findViewById(R.id.video_cover);
+
+        playerView = root.findViewById(R.id.video_player_view);
         TextView author = root.findViewById(R.id.video_author);
         descriptionView = root.findViewById(R.id.video_description);
         avatarView = root.findViewById(R.id.video_avatar);
@@ -105,12 +111,12 @@ public class VideoPageFragment extends Fragment {
         commentCountView = root.findViewById(R.id.video_comment_count);
         collectCountView = root.findViewById(R.id.video_collect_count);
         shareCountView = root.findViewById(R.id.video_share_count);
-        ImageButton commentButton = root.findViewById(R.id.video_comment_button);
+        ImageView commentButton = root.findViewById(R.id.video_comment_button);
         ImageView shareButton = root.findViewById(R.id.video_share_button);
         likeButton = root.findViewById(R.id.video_like_button);
         collectButton = root.findViewById(R.id.video_collect_button);
         ImageView pauseIndicator = root.findViewById(R.id.video_pause_indicator);
-        ImageButton backButton = root.findViewById(R.id.video_back_button);
+        ImageView backButton = root.findViewById(R.id.video_back_button);
         LinearLayout likeContainer = root.findViewById(R.id.action_like);
         LinearLayout commentContainer = root.findViewById(R.id.action_comment);
         LinearLayout collectContainer = root.findViewById(R.id.action_collect);
@@ -133,6 +139,14 @@ public class VideoPageFragment extends Fragment {
             shareCountView.setText(String.valueOf(baseShareCount));
             bindAvatar(feedItem.getAvatarUrl());
             setupDescription(feedItem.getTitle(), feedItem.getDescription());
+
+            if (coverView != null && feedItem.getCoverUrl() != null) {
+                Glide.with(this)
+                        .load(feedItem.getCoverUrl())
+                        .centerCrop()
+                        .placeholder(R.drawable.video_placeholder) // 没有就先随便放一个占位图资源
+                        .into(coverView);
+            }
         }
 
         gestureDetector = new GestureDetectorCompat(requireContext(), new GestureDetector.SimpleOnGestureListener() {
@@ -329,6 +343,13 @@ public class VideoPageFragment extends Fragment {
                 @Override
                 public void onPlaybackStateChanged(int playbackState) {
                     updateTimeBar();
+
+                    if (playbackState == Player.STATE_READY) {
+                        // 当前视频已经缓冲好，可以播放了，隐藏封面
+                        if (coverView != null) {
+                            coverView.setVisibility(View.GONE);
+                        }
+                    }
                 }
             };
         }
