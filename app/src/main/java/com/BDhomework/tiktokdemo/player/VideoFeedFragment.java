@@ -13,6 +13,7 @@ import androidx.viewpager2.widget.ViewPager2;
 import com.BDhomework.tiktokdemo.R;
 import com.BDhomework.tiktokdemo.model.FeedItem;
 import com.google.android.exoplayer2.ExoPlayer;
+import com.google.android.exoplayer2.Player;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -41,12 +42,15 @@ public class VideoFeedFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_video_feed, container, false);
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull View view,
+                              @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         playerManager = VideoPlayerManager.getInstance(requireContext());
         viewPager2 = view.findViewById(R.id.video_pager);
@@ -65,6 +69,8 @@ public class VideoFeedFragment extends Fragment {
         viewPager2.setOrientation(ViewPager2.ORIENTATION_VERTICAL);
         viewPager2.registerOnPageChangeCallback(pageChangeCallback);
         viewPager2.setCurrentItem(startPosition, false);
+
+        // 初始页设置
         viewPager2.post(() -> handlePageSelected(startPosition));
     }
 
@@ -84,7 +90,7 @@ public class VideoFeedFragment extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         // 临时先不要彻底释放播放器
-        //playerManager.release();
+        // playerManager.release();
     }
 
     private void handlePageSelected(int position) {
@@ -98,14 +104,36 @@ public class VideoFeedFragment extends Fragment {
     }
 
     private void preparePosition(int position, boolean playWhenReady) {
+        if (feedItems == null || position < 0 || position >= feedItems.size()) {
+            return;
+        }
+
         VideoPageFragment fragment = adapter.getFragmentAt(position);
         if (fragment == null || fragment.getPlayerView() == null) {
             return;
         }
+
         String url = fragment.getVideoUrl();
-        ExoPlayer player = playerManager.prepare(fragment.getPlayerView(), url, position, playWhenReady);
+        ExoPlayer player =
+                playerManager.prepare(fragment.getPlayerView(), url, position, playWhenReady);
+
         if (player != null) {
             fragment.bindPlayer(player, url, playWhenReady);
+
+            // 只有真正要“播放”的那个位置，我们才监听第一帧回调
+            if (playWhenReady) {
+                player.addListener(new Player.Listener() {
+                    @Override
+                    public void onRenderedFirstFrame() {
+                        // 第一帧画面已经渲染出来，此时可以安全隐藏封面
+                        if (getActivity() instanceof VideoFeedActivity) {
+                            ((VideoFeedActivity) getActivity()).hideTransitionCoverWithFade();
+                        }
+                        // 只用一次即可，避免重复回调
+                        player.removeListener(this);
+                    }
+                });
+            }
         }
     }
 
@@ -113,6 +141,7 @@ public class VideoFeedFragment extends Fragment {
         if (position < 0 || feedItems == null || position >= feedItems.size()) {
             return;
         }
+        // 预加载左右两侧，但不自动播放
         preparePosition(position, false);
     }
 
@@ -132,10 +161,11 @@ public class VideoFeedFragment extends Fragment {
         }
     }
 
-    private final ViewPager2.OnPageChangeCallback pageChangeCallback = new ViewPager2.OnPageChangeCallback() {
-        @Override
-        public void onPageSelected(int position) {
-            handlePageSelected(position);
-        }
-    };
+    private final ViewPager2.OnPageChangeCallback pageChangeCallback =
+            new ViewPager2.OnPageChangeCallback() {
+                @Override
+                public void onPageSelected(int position) {
+                    handlePageSelected(position);
+                }
+            };
 }

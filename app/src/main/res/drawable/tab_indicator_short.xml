@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 通过左右 inset 控制线的长度 -->
+    <item
+        android:left="10dp"
+        android:right="10dp"
+        android:gravity="bottom">
+
+        <shape android:shape="rectangle">
+            <!-- 粗细-->
+            <size android:height="4dp" />
+
+            <!-- 颜色：黑色 -->
+            <solid android:color="#000000" />
+
+            <!-- 圆角，让它变成抖音那种小药丸 -->
+            <corners android:radius="2dp" />
+        </shape>
+    </item>
+
+</layer-list>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#000000">
@@ -11,18 +12,20 @@
         android:layout_height="0dp"
         android:background="#000000"
         android:keepScreenOn="true"
-        app:layout_constraintBottom_toTopOf="@id/video_info_container"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/top_bar"
-        app:use_controller="false" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:use_controller="false">
 
-    <ImageView
-        android:id="@+id/video_cover"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        android:background="#000000" />
+        <ImageView
+            android:id="@+id/video_cover"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#000000"
+            android:scaleType="centerCrop" />
+    </com.google.android.exoplayer2.ui.PlayerView>
+
 
     <ImageView
         android:id="@+id/video_pause_indicator"
@@ -45,26 +48,14 @@
         android:layout_marginTop="8dp"
         android:layout_marginEnd="16dp"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageButton
-            android:id="@+id/video_back_button"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@android:color/transparent"
-            android:contentDescription="@string/app_name"
-            android:padding="8dp"
-            android:src="@drawable/ic_arrow_back"
-            android:tint="#FFFFFFFF"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <ImageButton
             android:id="@+id/video_search_button"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="31dp"
+            android:layout_height="31dp"
             android:background="@android:color/transparent"
             android:contentDescription="@string/app_name"
             android:padding="8dp"
@@ -72,24 +63,39 @@
             android:tint="#FFFFFFFF"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.529" />
+
+        <ImageButton
+            android:id="@+id/video_back_button"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/app_name"
+            android:src="@drawable/ic_arrow_back"
+            android:tint="#FFFFFFFF"
+            tools:layout_editor_absoluteX="-11dp"
+            tools:layout_editor_absoluteY="4dp" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <LinearLayout
         android:id="@+id/right_actions"
-        android:layout_width="64dp"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
+        android:layout_width="56dp"
+        android:layout_height="319dp"
+        android:layout_marginEnd="1dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:gravity="center_horizontal"
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="@id/video_player_view"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/video_player_view"
-        app:layout_constraintVertical_bias="0.68">
+        app:layout_constraintVertical_bias="0.75">
 
         <FrameLayout
-            android:layout_width="48dp"
-            android:layout_height="48dp">
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:clipChildren="false">
 
             <View
                 android:layout_width="match_parent"
@@ -105,30 +111,22 @@
                 android:contentDescription="@string/app_name"
                 android:scaleType="centerCrop" />
 
-            <FrameLayout
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:layout_gravity="bottom|end"
-                android:layout_marginEnd="-2dp"
-                android:layout_marginBottom="-2dp"
-                android:background="@drawable/bg_plus_circle">
+            <ImageView
+                android:id="@+id/video_follow_plus"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_gravity="bottom|center_horizontal"
+                android:layout_marginBottom="-4dp"
+                android:contentDescription="@string/app_name"
+                android:src="@drawable/ic_plus_circle" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="+"
-                    android:textColor="#FFFFFFFF"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
-            </FrameLayout>
         </FrameLayout>
 
         <LinearLayout
             android:id="@+id/action_like"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="10dp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?attr/selectableItemBackgroundBorderless"
@@ -141,7 +139,7 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:src="@drawable/ic_heart_outline"
-                android:tint="#FFFFFFFF" />
+                android:tint="@null" />
 
             <TextView
                 android:id="@+id/video_like_count"
@@ -157,7 +155,7 @@
             android:id="@+id/action_comment"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="10dp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?attr/selectableItemBackgroundBorderless"
@@ -186,7 +184,7 @@
             android:id="@+id/action_collect"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="10dp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?attr/selectableItemBackgroundBorderless"
@@ -199,7 +197,7 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:src="@drawable/ic_star_outline"
-                android:tint="#FFFFFFFF" />
+                android:tint="@null" />
 
             <TextView
                 android:id="@+id/video_collect_count"
@@ -215,7 +213,7 @@
             android:id="@+id/action_share"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="10dp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?attr/selectableItemBackgroundBorderless"
@@ -225,10 +223,9 @@
 
             <ImageView
                 android:id="@+id/video_share_button"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@drawable/ic_share"
-                android:tint="#FFFFFFFF" />
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@drawable/ic_share" />
 
             <TextView
                 android:id="@+id/video_share_count"
@@ -297,9 +294,7 @@
     <com.google.android.exoplayer2.ui.DefaultTimeBar
         android:id="@+id/video_time_bar"
         android:layout_width="0dp"
-        android:layout_height="24dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
+        android:layout_height="5dp"
         app:ad_marker_color="#80FFFFFF"
         app:bar_height="2dp"
         app:buffered_color="#33FFFFFF"
@@ -318,7 +313,7 @@
         android:id="@+id/comment_entry_bar"
         android:layout_width="0dp"
         android:layout_height="48dp"
-        android:background="#4D000000"
+        android:background="@drawable/bg_comment_entry"
         android:gravity="center_vertical"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
@@ -329,9 +324,8 @@
         <TextView
             android:id="@+id/comment_entry_text"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="1"
-            android:background="@drawable/bg_comment_entry"
             android:ellipsize="end"
             android:gravity="center_vertical"
             android:maxLines="1"

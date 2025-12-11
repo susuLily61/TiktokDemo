@@ -21,6 +21,7 @@ import com.BDhomework.tiktokdemo.player.VideoFeedActivity;
 
 import java.util.ArrayList;
 import java.util.List;
+import androidx.core.app.ActivityOptionsCompat;
 
 public class RecommendFragment extends Fragment implements FeedAdapter.OnFeedClickListener {
 
@@ -43,7 +44,14 @@ public class RecommendFragment extends Fragment implements FeedAdapter.OnFeedCli
 
         adapter = new FeedAdapter(this);
         recyclerView.setAdapter(adapter);
-        recyclerView.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
+
+        StaggeredGridLayoutManager layoutManager =
+                new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL);
+        layoutManager.setGapStrategy(StaggeredGridLayoutManager.GAP_HANDLING_MOVE_ITEMS_BETWEEN_SPANS);
+        recyclerView.setLayoutManager(layoutManager);
+
+        // 非固定大小，允许 item 高度根据图片变化
+        recyclerView.setHasFixedSize(false);
 
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -83,14 +91,24 @@ public class RecommendFragment extends Fragment implements FeedAdapter.OnFeedCli
     }
 
     @Override
-    public void onFeedClick(int position, FeedItem item) {
+    public void onFeedClick(View sharedView, int position, FeedItem item) {
         List<FeedItem> current = viewModel.getFeedLiveData().getValue();
         if (current != null) {
             Intent intent = new Intent(requireContext(), VideoFeedActivity.class);
             intent.putExtra(VideoFeedActivity.EXTRA_FEED_LIST, new ArrayList<>(current));
             intent.putExtra(VideoFeedActivity.EXTRA_FEED_ID, item.getId());
             intent.putExtra(VideoFeedActivity.EXTRA_FEED_POSITION, position);
-            startActivity(intent);
+
+            // 使用 shared element 启动 VideoFeedActivity
+            ActivityOptionsCompat options =
+                    ActivityOptionsCompat.makeSceneTransitionAnimation(
+                            requireActivity(),
+                            sharedView,
+                            sharedView.getTransitionName()   // 与 item_feed_card.xml / 视频页一致
+                    );
+
+            startActivity(intent, options.toBundle());
         }
     }
+
 }

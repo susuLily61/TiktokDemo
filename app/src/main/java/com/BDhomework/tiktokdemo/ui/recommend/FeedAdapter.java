@@ -14,14 +14,19 @@ import com.BDhomework.tiktokdemo.R;
 import com.BDhomework.tiktokdemo.model.FeedItem;
 import com.bumptech.glide.Glide;
 import com.google.android.material.imageview.ShapeableImageView;
-
 import java.util.ArrayList;
 import java.util.List;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
+import androidx.annotation.Nullable;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
+
 
 public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder> {
 
     public interface OnFeedClickListener {
-        void onFeedClick(int position, FeedItem item);
+        void onFeedClick(View sharedView, int position, FeedItem item);
     }
 
     private final List<FeedItem> data = new ArrayList<>();
@@ -40,7 +45,8 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder
     @NonNull
     @Override
     public FeedViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_feed_card, parent, false);
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_feed_card, parent, false);
         return new FeedViewHolder(view);
     }
 
@@ -55,47 +61,98 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder
     }
 
     class FeedViewHolder extends RecyclerView.ViewHolder {
+
         private final ImageView cover;
         private final TextView title;
         private final TextView author;
-        private final TextView likes;
+        private final TextView date;
+        private final TextView likeCount;
         private final ShapeableImageView avatar;
+        private final ImageView likeButton;
+
+        private boolean liked = false;
+        private int baseLikeCount = 0;
 
         FeedViewHolder(@NonNull View itemView) {
             super(itemView);
+
             cover = itemView.findViewById(R.id.feed_cover);
             title = itemView.findViewById(R.id.feed_title);
             author = itemView.findViewById(R.id.feed_author);
-            likes = itemView.findViewById(R.id.feed_likes);
+            date = itemView.findViewById(R.id.feed_date);
+            likeCount = itemView.findViewById(R.id.feed_likes);
             avatar = itemView.findViewById(R.id.feed_avatar);
+            likeButton = itemView.findViewById(R.id.feed_like_button);
         }
 
         void bind(FeedItem item) {
+
             Context context = itemView.getContext();
+
             title.setText(item.getTitle());
             author.setText(item.getAuthorName());
-            likes.setText(String.valueOf(item.getLikeCount()));
+            date.setText(item.getDate());
 
+            baseLikeCount = item.getLikeCount();
+            liked = false;
+            likeCount.setText(String.valueOf(baseLikeCount));
+            likeButton.setImageResource(R.drawable.ic_heart_outline);
+
+            // 动态设置封面尺寸（宽图 3:4，高图 4:3）
             Glide.with(context)
+                    .asBitmap()
                     .load(item.getCoverUrl())
-                    .centerCrop()
-                    .placeholder(R.drawable.ic_placeholder)
-                    .into(cover);
+                    .into(new CustomTarget<Bitmap>() {
+                        @Override
+                        public void onResourceReady(@NonNull Bitmap resource,
+                                                    @Nullable Transition<? super Bitmap> transition) {
 
+                            int width = resource.getWidth();
+                            int height = resource.getHeight();
+
+                            float ratio = (width > height) ? (3f / 4f) : (4f / 3f);
+
+                            int newHeight = (int) (cover.getWidth() * ratio);
+
+                            ViewGroup.LayoutParams params = cover.getLayoutParams();
+                            params.height = newHeight;
+                            cover.setLayoutParams(params);
+
+                            cover.setImageBitmap(resource);
+                        }
+
+                        @Override
+                        public void onLoadCleared(@Nullable Drawable placeholder) {}
+                    });
+
+            // 头像
             Glide.with(context)
                     .load(item.getAvatarUrl())
                     .circleCrop()
                     .placeholder(R.drawable.ic_avatar_placeholder)
                     .into(avatar);
 
+            // 点击跳视频页
             itemView.setOnClickListener(v -> {
-                if (listener != null) {
-                    int position = getBindingAdapterPosition();
-                    if (position != RecyclerView.NO_POSITION) {
-                        listener.onFeedClick(position, item);
-                    }
+                int pos = getBindingAdapterPosition();
+                if (pos != RecyclerView.NO_POSITION && listener != null) {
+                    listener.onFeedClick(cover, pos, item);
                 }
             });
+
+            // ❤️ 点赞
+            likeButton.setOnClickListener(v -> toggleLike());
+        }
+
+        private void toggleLike() {
+            liked = !liked;
+
+            int displayCount = liked ? baseLikeCount + 1 : baseLikeCount;
+            likeCount.setText(String.valueOf(displayCount));
+
+            likeButton.setImageResource(
+                    liked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline
+            );
         }
     }
 }

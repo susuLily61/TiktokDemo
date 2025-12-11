@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">TiktokDemo</string>
+    <string name="transition_feed_cover">feed_cover_transition</string>
 </resources>

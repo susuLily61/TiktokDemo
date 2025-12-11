@@ -5,6 +5,8 @@ import com.BDhomework.tiktokdemo.model.FeedItem;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
@@ -12,24 +14,30 @@ import java.util.UUID;
 
 public class MockFeedRepository {
 
-    // 封面池（横图为主没关系，后面可以换成竖图）
+    // 封面池
     private static final List<String> COVER_POOL = Arrays.asList(
-            "https://images.unsplash.com/photo-1507525428034-b723cf961d3e",
-            "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee",
-            "https://images.unsplash.com/photo-1469474968028-56623f02e42e",
-            "https://images.unsplash.com/photo-1501785888041-af3ef285b470",
-            "https://images.unsplash.com/photo-1501004318641-b39e6451bec6",
-            "https://images.unsplash.com/photo-1489515217757-5fd1be406fef",
-            "https://images.unsplash.com/photo-1518837695005-2083093ee35b",
-            "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f"
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyincover/01yumaoqiu.png",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyincover/022kaice.png",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyincover/02wangshun.png",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyincover/03kuzhi.png",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyincover/05quanhongcan.png",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyincover/06qiao.png",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyincover/07chang.png",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyincover/08jiguang.png",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyincover/09tangqian.png"
     );
 
     // 头像池
     private static final List<String> AVATAR_POOL = Arrays.asList(
-            "https://images.unsplash.com/profile-1502680755645-4c502e91c95f",
-            "https://images.unsplash.com/profile-1520813792240-02dc0ae524b9",
-            "https://images.unsplash.com/profile-1441991229545-2de04c01423c",
-            "https://images.unsplash.com/profile-1544037971-3a3ec0c49b80"
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/%E5%A4%B4%E5%83%8F1.jpg",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/%E5%A4%B4%E5%83%8F2.jpg",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/%E5%A4%B4%E5%83%8F3.jpg",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/%E5%A4%B4%E5%83%8F5.jpg",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/%E5%A4%B4%E5%83%8F6.jpg",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/%E5%A4%B4%E5%83%8F7.jpg",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/%E5%A4%B4%E5%83%8F8.jpg",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/%E5%A4%B4%E5%83%8F9.jpg",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/%E5%A4%B4%E5%83%8F10.jpg"
     );
 
     // 标题池
@@ -41,65 +49,84 @@ public class MockFeedRepository {
             "这也太可爱了吧",
             "开工前最后的摸鱼",
             "通勤路上的小确幸",
-            "周末追光计划"
+            "周末追光计划",
+            "风是自由的"
     );
 
     // 描述池
     private static final List<String> DESCRIPTION_POOL = Arrays.asList(
-            "愿你有一双匡威，陪你走遍天涯 #匡威1970s @汤圆club",
-            "夕阳下的海风刚刚好，下一站去哪里？",
-            "城市夜跑的第 12 天，坚持总会有收获。",
-            "这一刻想把天空的颜色分享给你们。",
-            "周末露营记：烟火气和星空都很治愈。",
+            "以前总觉得‘长大’这两个字很孤独，连偏旁部首都没有。后来才发现，它需要我们自己一笔一画写出来。 @汤圆club",
+            "生活不会永远顺着我们，但总会有一些不期而遇的温暖，让我们原谅了生活所有的刁难。",
+            "听说这个BGM和运镜是绝配？我不信！我也来试试！#运镜挑战 #听说这样拍会火",
+            "原版是天花板？那我这个‘地板砖’版请收好！@好友 来接力！ #表情包模仿秀",
+            "活了20多年才知道，这个原来要这样做！别再浪费钱/时间了！#生活小妙招 #干货",
+            "“你是不是也以为……？其实90%的人都做错了！30秒告诉你正确答案。",
+            "把普通的日子，过得浪漫一些。今日份的快乐已充值完成！",
+            "本以为我的生活是励志剧，结果活成了喜剧，偶尔还是悬疑剧（东西去哪了？）。这就是我，不一样的烟火！#当代年轻人的生活现状",
             "记录下这一条街的老味道和新气息。"
     );
 
     // 视频池（竖屏视频可以替换这里的 URL）
     private static final List<String> VIDEO_POOL = Arrays.asList(
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/02a39b9a5a7c672bf0e8353f9331f614.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/0550549dc67b9e580c1a97ce1666511a.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/0a3ca4e3cc7338a2b9f4e5bf83816164.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/0fdfc2141cec956c55e14f82781ec229.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/17944fc44775f6ee9a7973b55235faa6.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/4271df520269483b57ec84e33e7bd785.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/5159205ef8d9483d7e6a0dc0266affc1.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/6179fdf874dfae707a064f2223686a4e.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/631425c1c1ae5fbbdfa44f11ca4d21e3.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/674b377036d6b9873aed6c56b44ff05e.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/7018ba37fd3fbea1812c90e1a6dfbe4f.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/aeedaef1ff57b32de1d344317140bc6f.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/c06ca83c7d3790634b6de3e31c4e1101.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/c52226a5b3035077d6a87c89dc638696.mp4",
-            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/tiktokedmo/eb27f011f20c2d5001c61d700e7e21c4.mp4"
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyinvideo/01yumaoqiu.mp4",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyinvideo/022kaice.mp4",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyinvideo/02wangshun.mp4",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyinvideo/03kuzhi.mp4",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyinvideo/05quanhongcan.mp4",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyinvideo/06qiao.mp4",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyinvideo/07chang.mp4",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyinvideo/08jiguang.mp4",
+            "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyinvideo/09tangqian.mp4"
     );
 
     private static final Random RANDOM = new Random();
+    private static final int PAGE_SIZE = 10;
+    // 这里存“所有固定的 mock 数据”
+    private static final List<FeedItem> ALL_FEED = new ArrayList<>();
 
-    public List<FeedItem> loadFeed(int page) {
-        List<FeedItem> list = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            String id = UUID.randomUUID().toString();
+    private static String randomDate() {
+        Calendar cal = Calendar.getInstance();
+        long end = cal.getTimeInMillis();
 
-            // 标题
-            String title = TITLE_POOL.get((page * 10 + i) % TITLE_POOL.size());
+        cal.set(2022, Calendar.JANUARY, 1);
+        long start = cal.getTimeInMillis();
 
-            // 作者昵称
-            String author = String.format(Locale.CHINA, "用户%d", (page * 10) + i + 100);
+        long randomTime = start + (long) (RANDOM.nextDouble() * (end - start));
+        cal.setTimeInMillis(randomTime);
 
-            // 头像 / 封面 / 视频 从各自池子里轮询或随机取一个
-            String avatar = AVATAR_POOL.get(RANDOM.nextInt(AVATAR_POOL.size()));
-            String cover = COVER_POOL.get((page * 10 + i) % COVER_POOL.size())
+        int year = cal.get(Calendar.YEAR);
+        int month = cal.get(Calendar.MONTH) + 1;
+        int day = cal.get(Calendar.DAY_OF_MONTH);
+
+        return String.format(Locale.CHINA, "%04d.%02d.%02d", year, month, day);
+    }
+
+    static {
+        // 你自己决定总共要多少条数据，比如 30 条
+        int totalCount = 30;
+
+        for (int index = 0; index < totalCount; index++) {
+            String id = "item_" + index;
+
+            String title = TITLE_POOL.get(index % TITLE_POOL.size());
+
+            String author = String.format(Locale.CHINA, "用户%d", index + 100);
+
+            // 封面 / 视频 / 头像 都按 index 做一个稳定的映射
+            String cover = COVER_POOL.get(index % COVER_POOL.size())
                     + "?auto=format&fit=crop&w=800&q=80";
-            String videoUrl = VIDEO_POOL.get((page * 10 + i) % VIDEO_POOL.size());
 
-            // 描述
-            String description = DESCRIPTION_POOL.get(i % DESCRIPTION_POOL.size());
+            String videoUrl = VIDEO_POOL.get(index % VIDEO_POOL.size());
 
-            // 点赞数
-            int likes = 1000 + (page * 37) + i * 13 + RANDOM.nextInt(500);
+            String avatar = AVATAR_POOL.get(index % AVATAR_POOL.size());
 
-            // 注意这里的参数要和 FeedItem 构造函数一一对应
-            list.add(new FeedItem(
+            String description = DESCRIPTION_POOL.get(index % DESCRIPTION_POOL.size());
+
+            // ✅ 点赞数用一个“看起来像随机的”纯函数，跟 index 绑定，而不是 RANDOM
+            int likes = 1000 + (index * 37) % 5000;  // 不用 nextInt，保证固定
+
+            String date = randomDate();
+            FeedItem item = new FeedItem(
                     id,
                     title,
                     author,
@@ -107,11 +134,34 @@ public class MockFeedRepository {
                     cover,
                     videoUrl,
                     likes,
-                    description
-            ));
+                    description,
+                    date
+            );
+
+            ALL_FEED.add(item);
         }
-        return list;
     }
+
+
+    public List<FeedItem> loadFeed(int page) {
+
+        // 复制全部稳定的数据
+        List<FeedItem> shuffled = new ArrayList<>(ALL_FEED);
+
+        // 每次刷新随机打乱顺序
+        Collections.shuffle(shuffled, RANDOM);
+
+        // 分页
+        int fromIndex = page * PAGE_SIZE;
+        if (fromIndex >= shuffled.size()) {
+            return Collections.emptyList();
+        }
+        int toIndex = Math.min(fromIndex + PAGE_SIZE, shuffled.size());
+
+        // 返回当前页
+        return new ArrayList<>(shuffled.subList(fromIndex, toIndex));
+    }
+
 
     public List<Comment> mockComments() {
         return Arrays.asList(
@@ -122,4 +172,5 @@ public class MockFeedRepository {
                 new Comment("旅行者", "封面配色很舒服")
         );
     }
+
 }

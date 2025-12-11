@@ -9,7 +9,9 @@ import com.BDhomework.tiktokdemo.ui.recommend.RecommendFragment;
 
 public class TopTabAdapter extends FragmentStateAdapter {
 
-    private static final String[] TABS = new String[]{"关注", "推荐", "同城", "商城"};
+    private static final String[] TABS = new String[]{
+            "关注", "推荐", "直播", "精选", "同城", "团购", "商城","经验"
+    };
 
     public TopTabAdapter(@NonNull Fragment fragment) {
         super(fragment);
