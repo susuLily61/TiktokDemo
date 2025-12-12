@@ -96,9 +96,12 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder
             baseLikeCount = item.getLikeCount();
             liked = false;
             likeCount.setText(String.valueOf(baseLikeCount));
-            likeButton.setImageResource(R.drawable.ic_heart_outline);
+            likeButton.setImageResource(R.drawable.ic_heart_outline_black);
 
-            // 动态设置封面尺寸（宽图 3:4，高图 4:3）
+            // 计算当前每一列的宽度
+            int screenWidth = context.getResources().getDisplayMetrics().widthPixels;
+            final int columnWidth = screenWidth / 2;   // 你的 StaggeredGridLayoutManager 是 2 列
+
             Glide.with(context)
                     .asBitmap()
                     .load(item.getCoverUrl())
@@ -107,22 +110,26 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder
                         public void onResourceReady(@NonNull Bitmap resource,
                                                     @Nullable Transition<? super Bitmap> transition) {
 
-                            int width = resource.getWidth();
-                            int height = resource.getHeight();
+                            int w = resource.getWidth();
+                            int h = resource.getHeight();
 
-                            float ratio = (width > height) ? (3f / 4f) : (4f / 3f);
+                            // 横图矮一点，竖图高一点
+                            float ratio = (w > h) ? (3f / 4f) : (4f / 3f);
 
-                            int newHeight = (int) (cover.getWidth() * ratio);
+                            int newHeight = (int) (columnWidth * ratio);
 
                             ViewGroup.LayoutParams params = cover.getLayoutParams();
+                            params.width = columnWidth;
                             params.height = newHeight;
                             cover.setLayoutParams(params);
 
+                            cover.setScaleType(ImageView.ScaleType.CENTER_CROP);
                             cover.setImageBitmap(resource);
                         }
 
                         @Override
-                        public void onLoadCleared(@Nullable Drawable placeholder) {}
+                        public void onLoadCleared(@Nullable Drawable placeholder) {
+                        }
                     });
 
             // 头像
@@ -132,7 +139,7 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder
                     .placeholder(R.drawable.ic_avatar_placeholder)
                     .into(avatar);
 
-            // 点击跳视频页
+            // 跳转
             itemView.setOnClickListener(v -> {
                 int pos = getBindingAdapterPosition();
                 if (pos != RecyclerView.NO_POSITION && listener != null) {
@@ -140,7 +147,6 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder
                 }
             });
 
-            // ❤️ 点赞
             likeButton.setOnClickListener(v -> toggleLike());
         }
 
@@ -151,7 +157,7 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder
             likeCount.setText(String.valueOf(displayCount));
 
             likeButton.setImageResource(
-                    liked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline
+                    liked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline_black
             );
         }
     }

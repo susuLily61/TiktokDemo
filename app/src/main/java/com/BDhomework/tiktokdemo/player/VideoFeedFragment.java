@@ -2,6 +2,7 @@ package com.BDhomework.tiktokdemo.player;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -94,9 +95,15 @@ public class VideoFeedFragment extends Fragment {
     }
 
     private void handlePageSelected(int position) {
-        if (feedItems == null || position < 0 || position >= feedItems.size()) {
-            return;
+        if (feedItems == null || position < 0 || position >= feedItems.size()) return;
+
+        for (Integer bound : new HashSet<>(playerManager.getBoundPositions())) {
+            if (bound != position) {
+                ExoPlayer p = playerManager.getPlayerForPosition(bound);
+                if (p != null) p.setPlayWhenReady(false);
+            }
         }
+
         releaseFarPositions(position);
         preparePosition(position, true);
         preloadNeighbor(position - 1);
@@ -168,4 +175,5 @@ public class VideoFeedFragment extends Fragment {
                     handlePageSelected(position);
                 }
             };
+
 }

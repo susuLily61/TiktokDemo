@@ -18,7 +18,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:adjustViewBounds="true"
-            android:scaleType="centerCrop" />
+            android:scaleType="centerCrop"
+            android:transitionName="@string/transition_feed_cover" />
 
         <!-- 标题 -->
         <TextView
@@ -75,27 +76,29 @@
                     android:layout_marginTop="1dp" />
             </LinearLayout>
 
-            <!-- 爱心 + 数量 -->
+            <!-- 爱心 + 数量-->
             <LinearLayout
-                android:orientation="vertical"
-                android:gravity="center_horizontal"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
                 <ImageView
                     android:id="@+id/feed_like_button"
                     android:layout_width="18dp"
                     android:layout_height="18dp"
-                    android:src="@drawable/ic_heart_outline" />
+                    android:src="@drawable/ic_heart_outline_black" />
 
                 <TextView
                     android:id="@+id/feed_likes"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
                     android:textColor="#666666"
-                    android:textSize="10sp"
-                    android:layout_marginTop="2dp" />
+                    android:textSize="10sp" />
             </LinearLayout>
+
+
 
         </LinearLayout>
     </LinearLayout>

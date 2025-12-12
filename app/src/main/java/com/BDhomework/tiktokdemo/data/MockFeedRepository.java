@@ -143,24 +143,19 @@ public class MockFeedRepository {
     }
 
 
+    private static int rotateIndex = 0;
+
     public List<FeedItem> loadFeed(int page) {
+        List<FeedItem> rotated = new ArrayList<>(ALL_FEED);
+        int total = rotated.size();
 
-        // 复制全部稳定的数据
-        List<FeedItem> shuffled = new ArrayList<>(ALL_FEED);
+        rotateIndex = (rotateIndex + 3) % total; // 每次刷新偏移 3
 
-        // 每次刷新随机打乱顺序
-        Collections.shuffle(shuffled, RANDOM);
+        Collections.rotate(rotated, rotateIndex);
 
-        // 分页
-        int fromIndex = page * PAGE_SIZE;
-        if (fromIndex >= shuffled.size()) {
-            return Collections.emptyList();
-        }
-        int toIndex = Math.min(fromIndex + PAGE_SIZE, shuffled.size());
-
-        // 返回当前页
-        return new ArrayList<>(shuffled.subList(fromIndex, toIndex));
+        return rotated;
     }
+
 
 
     public List<Comment> mockComments() {

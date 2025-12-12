@@ -1,5 +1,7 @@
 package com.BDhomework.tiktokdemo.player;
 
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -8,11 +10,14 @@ import android.text.TextUtils;
 import android.text.method.LinkMovementMethod;
 import android.text.style.ClickableSpan;
 import android.text.Spanned;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.LinearInterpolator;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -68,6 +73,14 @@ public class VideoPageFragment extends Fragment {
 
     private ImageView coverView;
 
+    private View musicDiscView;
+    private ObjectAnimator musicDiscAnimator;
+
+    private ImageView playIndicator;          // 中间播放键
+    private FrameLayout heartAnimLayer;       // 双击爱心动画容器
+
+    private boolean wasPlayingBeforeScrub = false;
+
 
     public static VideoPageFragment newInstance(FeedItem item, int position) {
         VideoPageFragment fragment = new VideoPageFragment();
@@ -103,7 +116,6 @@ public class VideoPageFragment extends Fragment {
         playerView = root.findViewById(R.id.video_player_view);
         coverView = root.findViewById(R.id.video_cover);
 
-        playerView = root.findViewById(R.id.video_player_view);
         TextView author = root.findViewById(R.id.video_author);
         descriptionView = root.findViewById(R.id.video_description);
         avatarView = root.findViewById(R.id.video_avatar);
@@ -115,7 +127,6 @@ public class VideoPageFragment extends Fragment {
         ImageView shareButton = root.findViewById(R.id.video_share_button);
         likeButton = root.findViewById(R.id.video_like_button);
         collectButton = root.findViewById(R.id.video_collect_button);
-        ImageView pauseIndicator = root.findViewById(R.id.video_pause_indicator);
         ImageView backButton = root.findViewById(R.id.video_back_button);
         LinearLayout likeContainer = root.findViewById(R.id.action_like);
         LinearLayout commentContainer = root.findViewById(R.id.action_comment);
@@ -127,6 +138,12 @@ public class VideoPageFragment extends Fragment {
         View commentEntryMention = root.findViewById(R.id.comment_entry_mention);
         View commentEntryEmoji = root.findViewById(R.id.comment_entry_emoji);
         timeBar = root.findViewById(R.id.video_time_bar);
+
+        musicDiscView = root.findViewById(R.id.video_music_disc);
+        setupMusicDiscRotation();
+
+        playIndicator = root.findViewById(R.id.video_pause_indicator);
+        heartAnimLayer = root.findViewById(R.id.heart_anim_layer);
 
         if (feedItem != null) {
             author.setText("@" + feedItem.getAuthorName());
@@ -149,21 +166,38 @@ public class VideoPageFragment extends Fragment {
             }
         }
 
-        gestureDetector = new GestureDetectorCompat(requireContext(), new GestureDetector.SimpleOnGestureListener() {
-            @Override
-            public boolean onDoubleTap(MotionEvent e) {
-                toggleLike();
-                return super.onDoubleTap(e);
-            }
 
-            @Override
-            public boolean onSingleTapConfirmed(MotionEvent e) {
-                togglePlayPause(pauseIndicator);
-                return super.onSingleTapConfirmed(e);
-            }
+        gestureDetector = new GestureDetectorCompat(requireContext(),
+                new GestureDetector.SimpleOnGestureListener() {
+
+                    @Override
+                    public boolean onDown(MotionEvent e) {
+                        return true; // 必须返回 true 才能继续收到后续事件（包括双击）
+                    }
+
+                    @Override
+                    public boolean onDoubleTap(MotionEvent e) {
+                        handleDoubleTap(e);
+                        return true;
+                    }
+
+                    @Override
+                    public boolean onSingleTapConfirmed(MotionEvent e) {
+                        togglePlayPause(); // 不再传参，用成员 playIndicator
+                        return true;
+                    }
+                });
+
+        playerView.setClickable(true);
+
+        playerView.setOnTouchListener((v, event) -> {
+            boolean handled = gestureDetector.onTouchEvent(event);
+
+            // handled == true  → 单击 / 双击 → 我们自己吃掉
+            // handled == false → 滑动 → 交给 ViewPager2 处理上下滑
+            return handled;
         });
 
-        root.setOnTouchListener((v, event) -> gestureDetector.onTouchEvent(event));
 
         View.OnClickListener commentClick = v -> showComments();
         commentButton.setOnClickListener(commentClick);
@@ -176,8 +210,8 @@ public class VideoPageFragment extends Fragment {
 
         shareButton.setOnClickListener(v -> Toast.makeText(requireContext(), "分享功能待接入", Toast.LENGTH_SHORT).show());
         shareContainer.setOnClickListener(v -> Toast.makeText(requireContext(), "分享功能待接入", Toast.LENGTH_SHORT).show());
-        likeButton.setOnClickListener(v -> toggleLike());
-        likeContainer.setOnClickListener(v -> toggleLike());
+        likeButton.setOnClickListener(v -> toggleLikeByButton());
+        likeContainer.setOnClickListener(v -> toggleLikeByButton());
         collectButton.setOnClickListener(v -> toggleCollect());
         collectContainer.setOnClickListener(v -> toggleCollect());
         backButton.setOnClickListener(v -> requireActivity().finish());
@@ -187,6 +221,7 @@ public class VideoPageFragment extends Fragment {
             public void onScrubStart(TimeBar timeBar, long position) {
                 isScrubbing = true;
                 if (currentPlayer != null) {
+                    wasPlayingBeforeScrub = currentPlayer.getPlayWhenReady();
                     currentPlayer.setPlayWhenReady(false);
                 }
             }
@@ -201,13 +236,70 @@ public class VideoPageFragment extends Fragment {
                 isScrubbing = false;
                 if (currentPlayer != null) {
                     currentPlayer.seekTo(position);
-                    currentPlayer.setPlayWhenReady(true);
+                    currentPlayer.setPlayWhenReady(wasPlayingBeforeScrub);
+                    // 同步中间播放键
+                    if (playIndicator != null) {
+                        playIndicator.setVisibility(wasPlayingBeforeScrub ? View.GONE : View.VISIBLE);
+                        playIndicator.setAlpha(0.65f);
+                    }
                 }
                 scheduleProgressUpdate();
             }
         });
 
         return root;
+    }
+
+    //双击爱心动画
+    private void showDoubleTapHeart(float x, float y) {
+        if (heartAnimLayer == null || playerView == null) return;
+
+        ImageView heart = new ImageView(requireContext());
+        int size = (int) (120 * getResources().getDisplayMetrics().density);
+        heart.setImageResource(R.drawable.ic_heart_big_filled);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(size, size);
+        heart.setLayoutParams(lp);
+
+        int[] pvLoc = new int[2];
+        int[] layerLoc = new int[2];
+        playerView.getLocationOnScreen(pvLoc);
+        heartAnimLayer.getLocationOnScreen(layerLoc);
+
+        float layerX = (pvLoc[0] + x) - layerLoc[0];
+        float layerY = (pvLoc[1] + y) - layerLoc[1];
+
+        heart.setX(layerX - size / 2f);
+        heart.setY(layerY - size / 2f);
+
+        heart.setScaleX(0.2f);
+        heart.setScaleY(0.2f);
+        heart.setAlpha(0f);
+
+        heartAnimLayer.addView(heart);
+
+        float dy = 120 * getResources().getDisplayMetrics().density;
+
+        heart.animate()
+                .alpha(1f).scaleX(1f).scaleY(1f)
+                .setDuration(160)
+                .withEndAction(() -> heart.animate()
+                        .translationYBy(-dy)
+                        .alpha(0f)
+                        .setDuration(320)
+                        .withEndAction(() -> heartAnimLayer.removeView(heart))
+                        .start())
+                .start();
+    }
+
+    private void handleDoubleTap(MotionEvent e) {
+        Log.d("Gesture", "double tap x=" + e.getX() + ", y=" + e.getY());
+        // 每次双击都要有爱心动画
+        showDoubleTapHeart(e.getX(), e.getY());
+
+        // 只有第一次双击才真正点赞（+1 + 变红）
+        if (!liked) {
+            setLiked(true, true);
+        }
     }
 
     private void bindAvatar(String avatarUrl) {
@@ -268,13 +360,23 @@ public class VideoPageFragment extends Fragment {
         });
     }
 
-    private void toggleLike() {
-        liked = !liked;
+    private void setLiked(boolean newLiked, boolean updateCount) {
+        liked = newLiked;
+
         int baseCount = feedItem != null ? feedItem.getLikeCount() : 0;
-        int displayCount = liked ? baseCount + 1 : baseCount;
-        likeCountView.setText(String.valueOf(displayCount));
+        if (updateCount) {
+            int displayCount = liked ? baseCount + 1 : baseCount;
+            likeCountView.setText(String.valueOf(displayCount));
+        }
+
         likeButton.setImageResource(liked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
     }
+
+    private void toggleLikeByButton() {
+        // 按钮点击允许取消/恢复，并更新计数
+        setLiked(!liked, true);
+    }
+
 
     private void toggleCollect() {
         collected = !collected;
@@ -283,12 +385,53 @@ public class VideoPageFragment extends Fragment {
         collectButton.setImageResource(collected ? R.drawable.ic_star_filled : R.drawable.ic_star_outline);
     }
 
-    private void togglePlayPause(ImageView pauseIndicator) {
-        if (currentPlayer == null) return;
-        boolean playWhenReady = currentPlayer.getPlayWhenReady();
-        currentPlayer.setPlayWhenReady(!playWhenReady);
-        pauseIndicator.setVisibility(playWhenReady ? View.VISIBLE : View.GONE);
+    //音乐转盘旋转动画
+    private void setupMusicDiscRotation() {
+        if (musicDiscView == null) return;
+
+        musicDiscAnimator = ObjectAnimator.ofFloat(musicDiscView, View.ROTATION, 0f, 360f);
+        musicDiscAnimator.setDuration(6000L); // 6秒一圈
+        musicDiscAnimator.setInterpolator(new LinearInterpolator());
+        musicDiscAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        musicDiscAnimator.setRepeatMode(ValueAnimator.RESTART);
+        // 关键：先 start 一下再 pause，保证后续 resume 生效
+        musicDiscAnimator.start();
+        musicDiscAnimator.pause();
     }
+
+    private void setMusicDiscSpinning(boolean spinning) {
+        if (musicDiscAnimator == null) return;
+        if (spinning) {
+            if (!musicDiscAnimator.isStarted()) musicDiscAnimator.start();
+            else musicDiscAnimator.resume();
+        } else {
+            musicDiscAnimator.pause();
+        }
+    }
+
+    private void togglePlayPause() {
+        if (currentPlayer == null || playIndicator == null) return;
+
+        boolean wasPlaying = currentPlayer.getPlayWhenReady();
+        boolean nowPlaying = !wasPlaying;
+        currentPlayer.setPlayWhenReady(nowPlaying);
+
+        if (nowPlaying) {
+            // 播放：隐藏中间播放键
+            playIndicator.animate().alpha(0f).setDuration(120).withEndAction(() -> {
+                playIndicator.setVisibility(View.GONE);
+                playIndicator.setAlpha(0.65f);
+            }).start();
+        } else {
+            // 暂停：显示中间播放键
+            playIndicator.setAlpha(0f);
+            playIndicator.setVisibility(View.VISIBLE);
+            playIndicator.animate().alpha(0.65f).setDuration(120).start();
+        }
+
+        setMusicDiscSpinning(nowPlaying);
+    }
+
 
     private void showComments() {
         CommentBottomSheetDialog dialog = new CommentBottomSheetDialog();
@@ -297,6 +440,7 @@ public class VideoPageFragment extends Fragment {
     }
 
     public void bindPlayer(@NonNull ExoPlayer player, @NonNull String url, boolean playWhenReady) {
+        Log.d("VP", "bindPlayer pos=" + position + " playWhenReady? " + player.getPlayWhenReady() + " url=" + url);
         if (currentPlayer != null && currentPlayer != player && playerListenerAttached) {
             currentPlayer.removeListener(playerListener);
             playerListenerAttached = false;
@@ -305,8 +449,18 @@ public class VideoPageFragment extends Fragment {
         videoUrl = url;
         playerView.setPlayer(player);
         attachPlayerListener();
-        player.setPlayWhenReady(playWhenReady);
         scheduleProgressUpdate();
+
+        if (playIndicator != null) {
+            if (playWhenReady) {
+                playIndicator.setVisibility(View.GONE);
+            } else {
+                playIndicator.setAlpha(0.65f);
+                playIndicator.setVisibility(View.VISIBLE);
+            }
+        }
+        setMusicDiscSpinning(playWhenReady);
+
     }
 
     public void clearPlayer() {
@@ -320,14 +474,30 @@ public class VideoPageFragment extends Fragment {
         }
         progressHandler.removeCallbacksAndMessages(null);
         updateTimeBar();
+
+        setMusicDiscSpinning(false);
+
+        if (playIndicator != null) {
+            playIndicator.setAlpha(0.65f);
+            playIndicator.setVisibility(View.GONE);
+        }
+
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         clearPlayer();
+
+        if (musicDiscAnimator != null) {
+            musicDiscAnimator.cancel();
+            musicDiscAnimator = null;
+        }
+        musicDiscView = null;
+
         playerView = null;
     }
+
 
     private void attachPlayerListener() {
         if (playerListenerAttached || currentPlayer == null) {
@@ -342,13 +512,20 @@ public class VideoPageFragment extends Fragment {
 
                 @Override
                 public void onPlaybackStateChanged(int playbackState) {
+                    Log.d("VP", "state=" + playbackState + " playWhenReady=" + (currentPlayer != null && currentPlayer.getPlayWhenReady()));
+
                     updateTimeBar();
 
                     if (playbackState == Player.STATE_READY) {
-                        // 当前视频已经缓冲好，可以播放了，隐藏封面
+                        // 缓冲好：隐藏封面
                         if (coverView != null) {
                             coverView.setVisibility(View.GONE);
                         }
+                        // READY 时按 playWhenReady 决定是否转
+                        setMusicDiscSpinning(currentPlayer != null && currentPlayer.getPlayWhenReady());
+                    } else if (playbackState == Player.STATE_ENDED) {
+                        // 播放结束：停转
+                        setMusicDiscSpinning(false);
                     }
                 }
             };
@@ -391,4 +568,5 @@ public class VideoPageFragment extends Fragment {
         timeBar.setPosition(position);
         timeBar.setBufferedPosition(buffered);
     }
+
 }

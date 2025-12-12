@@ -31,9 +31,9 @@
         android:id="@+id/video_pause_indicator"
         android:layout_width="72dp"
         android:layout_height="72dp"
-        android:contentDescription="@string/app_name"
-        android:src="@android:drawable/ic_media_pause"
+        android:src="@android:drawable/ic_media_play"
         android:tint="@android:color/white"
+        android:alpha="0.65"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -59,8 +59,8 @@
             android:background="@android:color/transparent"
             android:contentDescription="@string/app_name"
             android:padding="8dp"
-            android:src="@android:drawable/ic_menu_search"
-            android:tint="#FFFFFFFF"
+            android:src="@drawable/ic_search_white"
+            android:tint="#FFFFFF"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -81,7 +81,7 @@
     <LinearLayout
         android:id="@+id/right_actions"
         android:layout_width="56dp"
-        android:layout_height="319dp"
+        android:layout_height="380dp"
         android:layout_marginEnd="1dp"
         android:clipChildren="false"
         android:clipToPadding="false"
@@ -90,7 +90,7 @@
         app:layout_constraintBottom_toBottomOf="@id/video_player_view"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/video_player_view"
-        app:layout_constraintVertical_bias="0.75">
+        app:layout_constraintVertical_bias="0.8">
 
         <FrameLayout
             android:layout_width="40dp"
@@ -236,6 +236,23 @@
                 android:textColor="#EDEDED"
                 android:textSize="12sp" />
         </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/action_music_disc"
+            android:layout_width="43dp"
+            android:layout_height="43dp"
+            android:layout_marginTop="12dp">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/video_music_disc"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_margin="1dp"
+            android:src="@drawable/ic_music_disc"
+            android:scaleType="centerCrop"
+            app:shapeAppearanceOverlay="@style/CircleImageShape" />
+        </FrameLayout>
+
     </LinearLayout>
 
     <LinearLayout
@@ -365,6 +382,18 @@
             android:padding="8dp"
             android:src="@drawable/ic_emoji"
             android:tint="#FFFFFFFF" />
+
     </LinearLayout>
 
+    <FrameLayout
+        android:id="@+id/heart_anim_layer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clickable="false"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
 </androidx.constraintlayout.widget.ConstraintLayout>

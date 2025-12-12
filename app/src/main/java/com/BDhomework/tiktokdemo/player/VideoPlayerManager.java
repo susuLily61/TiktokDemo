@@ -2,6 +2,8 @@ package com.BDhomework.tiktokdemo.player;
 
 import android.content.Context;
 
+import androidx.annotation.Nullable;
+
 import com.google.android.exoplayer2.ExoPlayer;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.LoadControl;
@@ -129,4 +131,9 @@ public class VideoPlayerManager {
         }
         playerView.setPlayer(player);
     }
+    @Nullable
+    public synchronized ExoPlayer getPlayerForPosition(int position) {
+        return positionToPlayer.get(position);
+    }
+
 }
