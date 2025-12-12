@@ -18,9 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Centralized manager for handling ExoPlayer lifecycle and reuse across pages.
- */
 public class VideoPlayerManager {
 
     private static VideoPlayerManager sInstance;

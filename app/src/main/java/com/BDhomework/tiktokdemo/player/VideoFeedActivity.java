@@ -68,8 +68,6 @@ public class VideoFeedActivity extends AppCompatActivity {
                 .dontAnimate()
                 .into(transitionCover);
 
-        // ⚠ 这里不再用 postDelayed，具体“什么时候关”交给 Fragment/ExoPlayer 控制
-
         // 加载视频内流 Fragment
         if (savedInstanceState == null) {
             VideoFeedFragment fragment = VideoFeedFragment.newInstance(feedItems, startPosition);

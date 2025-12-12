@@ -100,7 +100,7 @@ public class FeedAdapter extends RecyclerView.Adapter<FeedAdapter.FeedViewHolder
 
             // 计算当前每一列的宽度
             int screenWidth = context.getResources().getDisplayMetrics().widthPixels;
-            final int columnWidth = screenWidth / 2;   // 你的 StaggeredGridLayoutManager 是 2 列
+            final int columnWidth = screenWidth / 2;   //  2 列
 
             Glide.with(context)
                     .asBitmap()

@@ -87,7 +87,6 @@ public class VideoPageFragment extends Fragment {
     private ImageView playIndicator;      // 中间播放键
     private FrameLayout heartAnimLayer;   // 双击爱心动画容器
 
-    // ✅ 关键：第一帧兜底标记，确保“隐藏封面”只执行一次，且在每次 bind 时重置
     private boolean firstFrameRendered = false;
 
     public static VideoPageFragment newInstance(FeedItem item, int position) {
@@ -150,7 +149,7 @@ public class VideoPageFragment extends Fragment {
         playIndicator = root.findViewById(R.id.video_pause_indicator);
         heartAnimLayer = root.findViewById(R.id.heart_anim_layer);
 
-        // ✅ 关键：创建页时先让封面可见（避免复用/复进时状态脏）
+        // 创建页时先让封面可见
         if (coverView != null) {
             coverView.setVisibility(View.VISIBLE);
             coverView.setAlpha(1f);
@@ -201,7 +200,7 @@ public class VideoPageFragment extends Fragment {
 
         playerView.setClickable(true);
 
-        // ✅ 更稳：只在 ACTION_UP 时消费 handled，避免影响 ViewPager2 滑动/选中
+        // 只在 ACTION_UP 时消费 handled，避免影响 ViewPager2 滑动/选中
         playerView.setOnTouchListener((v, event) -> {
             boolean handled = gestureDetector.onTouchEvent(event);
             if (event.getActionMasked() == MotionEvent.ACTION_UP) {
@@ -263,16 +262,16 @@ public class VideoPageFragment extends Fragment {
         return root;
     }
 
-    // 绑定播放器：每次都重置 firstFrame + 先显示封面，然后等待第一帧再隐藏
+
     public void bindPlayer(@NonNull ExoPlayer player, @NonNull String url, boolean playWhenReady) {
-        // ① 防止重复绑定同一个 player
+        // 防止重复绑定同一个 player
         if (currentPlayer == player
                 && TextUtils.equals(videoUrl, url)
                 && playerListenerAttached) {
             return;
         }
 
-        // ② 如果是切换 player，先解旧 listener（不 return）
+        // 如果是切换 player，先解旧 listener（不 return）
         if (currentPlayer != null && currentPlayer != player && playerListenerAttached) {
             currentPlayer.removeListener(playerListener);
             playerListenerAttached = false;
@@ -291,7 +290,7 @@ public class VideoPageFragment extends Fragment {
         attachPlayerListener();
 
         player.setPlayWhenReady(playWhenReady);
-        // ✅ 这里补上 prepare，避免某些路径下没 prepare 导致时序怪
+
         player.prepare();
         logPlayerViewLayers("after prepare");
         logCover("bindPlayer after prepare");
@@ -307,7 +306,7 @@ public class VideoPageFragment extends Fragment {
         }
         setMusicDiscSpinning(playWhenReady);
 
-        // ✅ 超级兜底：800ms 后如果在播但封面还在，就强制关（解决极少数不回调 firstFrame）
+        // 超级兜底：800ms 后如果在播但封面还在，就强制关
         playerView.postDelayed(() -> {
             if (!isAdded()) return;
             if (currentPlayer != null && currentPlayer.getPlayWhenReady()) {
@@ -372,7 +371,7 @@ public class VideoPageFragment extends Fragment {
                     logPlayerViewLayers("firstFrame BEFORE");
                     if (coverView != null) coverView.setVisibility(View.GONE);
 
-                    // ✅ 兜底隐藏 Activity 的转场封面（解决你“有声音但封面不消失”的偶发）
+                    // 兜底隐藏 Activity 的转场封面
                     if (getActivity() instanceof VideoFeedActivity) {
                         ((VideoFeedActivity) getActivity()).hideTransitionCoverWithFade();
                     }

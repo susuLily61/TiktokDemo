@@ -51,7 +51,7 @@ public class HomeFragment extends Fragment {
             tv.setPadding(dp(8), 0, dp(8), 0);   // 控制 tab 间距
 
             Typeface type = Typeface.create("sans-serif-medium", Typeface.NORMAL);
-            tv.setTypeface(type, Typeface.NORMAL);   // 这里全部先设为正常体
+            tv.setTypeface(type, Typeface.NORMAL);
 
             tab.setCustomView(tv);
         }).attach();
@@ -59,7 +59,6 @@ public class HomeFragment extends Fragment {
         // 默认切到“推荐”（index = 1）
         viewPager.setCurrentItem(1, false);
 
-        // 选中 / 未选中 时加粗 / 还原
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
@@ -87,9 +86,7 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        // ⭐ attach() 之后：
-        // 1. 压缩每个 TabView（保持你现在的“很紧凑”效果）
-        // 2. 让当前选中的 Tab 初始就是加粗状态
+
         tabLayout.post(() -> {
             ViewGroup slidingTabIndicator = (ViewGroup) tabLayout.getChildAt(0);
             for (int i = 0; i < slidingTabIndicator.getChildCount(); i++) {

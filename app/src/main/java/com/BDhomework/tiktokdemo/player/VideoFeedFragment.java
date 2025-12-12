@@ -107,7 +107,7 @@ public class VideoFeedFragment extends Fragment {
 
         VideoPageFragment fragment = adapter.getFragmentAt(position);
         if (fragment == null || fragment.getPlayerView() == null) {
-            // ✅ fragment 可能还没创建出来：轻量重试几次
+            // fragment 可能还没创建出来：轻量重试几次
             if (retry < 6 && viewPager2 != null) {
                 viewPager2.postDelayed(() -> preparePosition(position, playWhenReady, retry + 1), 50);
             }

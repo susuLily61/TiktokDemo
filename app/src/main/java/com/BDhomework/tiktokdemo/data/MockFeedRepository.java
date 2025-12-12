@@ -66,7 +66,7 @@ public class MockFeedRepository {
             "记录下这一条街的老味道和新气息。"
     );
 
-    // 视频池（竖屏视频可以替换这里的 URL）
+    // 视频池
     private static final List<String> VIDEO_POOL = Arrays.asList(
             "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyinvideo/01yumaoqiu.mp4",
             "https://tiktokdemo.oss-cn-qingdao.aliyuncs.com/douyinvideo/022kaice.mp4",
@@ -102,7 +102,6 @@ public class MockFeedRepository {
     }
 
     static {
-        // 你自己决定总共要多少条数据，比如 30 条
         int totalCount = 30;
 
         for (int index = 0; index < totalCount; index++) {
@@ -122,7 +121,6 @@ public class MockFeedRepository {
 
             String description = DESCRIPTION_POOL.get(index % DESCRIPTION_POOL.size());
 
-            // ✅ 点赞数用一个“看起来像随机的”纯函数，跟 index 绑定，而不是 RANDOM
             int likes = 1000 + (index * 37) % 5000;  // 不用 nextInt，保证固定
 
             String date = randomDate();
