@@ -53,6 +53,7 @@ public class VideoFeedFragment extends Fragment {
     public void onViewCreated(@NonNull View view,
                               @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
         playerManager = VideoPlayerManager.getInstance(requireContext());
         viewPager2 = view.findViewById(R.id.video_pager);
 
@@ -61,9 +62,7 @@ public class VideoFeedFragment extends Fragment {
             startPosition = getArguments().getInt(ARG_START_POSITION, 0);
         }
 
-        if (feedItems == null || feedItems.isEmpty()) {
-            return;
-        }
+        if (feedItems == null || feedItems.isEmpty()) return;
 
         adapter = new VideoPagerAdapter(this, feedItems);
         viewPager2.setAdapter(adapter);
@@ -71,7 +70,6 @@ public class VideoFeedFragment extends Fragment {
         viewPager2.registerOnPageChangeCallback(pageChangeCallback);
         viewPager2.setCurrentItem(startPosition, false);
 
-        // 初始页设置
         viewPager2.post(() -> handlePageSelected(startPosition));
     }
 
@@ -87,16 +85,10 @@ public class VideoFeedFragment extends Fragment {
         viewPager2.unregisterOnPageChangeCallback(pageChangeCallback);
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        // 临时先不要彻底释放播放器
-        // playerManager.release();
-    }
-
     private void handlePageSelected(int position) {
         if (feedItems == null || position < 0 || position >= feedItems.size()) return;
 
+        // 只让当前页播放
         for (Integer bound : new HashSet<>(playerManager.getBoundPositions())) {
             if (bound != position) {
                 ExoPlayer p = playerManager.getPlayerForPosition(bound);
@@ -105,51 +97,33 @@ public class VideoFeedFragment extends Fragment {
         }
 
         releaseFarPositions(position);
-        preparePosition(position, true);
+        preparePosition(position, true, 0);
         preloadNeighbor(position - 1);
         preloadNeighbor(position + 1);
     }
 
-    private void preparePosition(int position, boolean playWhenReady) {
-        if (feedItems == null || position < 0 || position >= feedItems.size()) {
-            return;
-        }
+    private void preparePosition(int position, boolean playWhenReady, int retry) {
+        if (feedItems == null || position < 0 || position >= feedItems.size()) return;
 
         VideoPageFragment fragment = adapter.getFragmentAt(position);
         if (fragment == null || fragment.getPlayerView() == null) {
+            // ✅ fragment 可能还没创建出来：轻量重试几次
+            if (retry < 6 && viewPager2 != null) {
+                viewPager2.postDelayed(() -> preparePosition(position, playWhenReady, retry + 1), 50);
+            }
             return;
         }
 
         String url = fragment.getVideoUrl();
-        ExoPlayer player =
-                playerManager.prepare(fragment.getPlayerView(), url, position, playWhenReady);
-
+        ExoPlayer player = playerManager.prepare(fragment.getPlayerView(), url, position, playWhenReady);
         if (player != null) {
             fragment.bindPlayer(player, url, playWhenReady);
-
-            // 只有真正要“播放”的那个位置，我们才监听第一帧回调
-            if (playWhenReady) {
-                player.addListener(new Player.Listener() {
-                    @Override
-                    public void onRenderedFirstFrame() {
-                        // 第一帧画面已经渲染出来，此时可以安全隐藏封面
-                        if (getActivity() instanceof VideoFeedActivity) {
-                            ((VideoFeedActivity) getActivity()).hideTransitionCoverWithFade();
-                        }
-                        // 只用一次即可，避免重复回调
-                        player.removeListener(this);
-                    }
-                });
-            }
         }
     }
 
     private void preloadNeighbor(int position) {
-        if (position < 0 || feedItems == null || position >= feedItems.size()) {
-            return;
-        }
-        // 预加载左右两侧，但不自动播放
-        preparePosition(position, false);
+        if (position < 0 || feedItems == null || position >= feedItems.size()) return;
+        preparePosition(position, false, 0);
     }
 
     private void releaseFarPositions(int centerPosition) {
@@ -157,12 +131,11 @@ public class VideoFeedFragment extends Fragment {
         keep.add(centerPosition);
         keep.add(centerPosition - 1);
         keep.add(centerPosition + 1);
+
         for (Integer bound : new HashSet<>(playerManager.getBoundPositions())) {
             if (!keep.contains(bound)) {
                 VideoPageFragment fragment = adapter.getFragmentAt(bound);
-                if (fragment != null) {
-                    fragment.clearPlayer();
-                }
+                if (fragment != null) fragment.clearPlayer();
                 playerManager.releasePosition(bound);
             }
         }
@@ -175,5 +148,4 @@ public class VideoFeedFragment extends Fragment {
                     handlePageSelected(position);
                 }
             };
-
 }

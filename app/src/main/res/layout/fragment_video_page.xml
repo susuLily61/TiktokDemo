@@ -10,19 +10,22 @@
         android:id="@+id/video_player_view"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="#000000"
+        android:background="@android:color/transparent"
         android:keepScreenOn="true"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:use_controller="false">
+        app:use_controller="false"
+        app:shutter_background_color="@android:color/transparent"
+        app:surface_type="texture_view"
+        app:use_artwork="false">
 
         <ImageView
             android:id="@+id/video_cover"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#000000"
+            android:background="@android:color/transparent"
             android:scaleType="centerCrop" />
     </com.google.android.exoplayer2.ui.PlayerView>
 

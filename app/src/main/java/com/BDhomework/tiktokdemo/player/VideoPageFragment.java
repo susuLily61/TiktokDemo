@@ -2,6 +2,7 @@ package com.BDhomework.tiktokdemo.player;
 
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -58,17 +59,24 @@ public class VideoPageFragment extends Fragment {
     private ImageView avatarView;
     private TextView descriptionView;
     private TimeBar timeBar;
+
     private boolean liked = false;
     private boolean collected = false;
+
     private int baseCommentCount;
     private int baseCollectCount;
     private int baseShareCount;
+
     private boolean isScrubbing = false;
+    private boolean wasPlayingBeforeScrub = false;
+
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private GestureDetectorCompat gestureDetector;
-    private boolean playerListenerAttached = false;
+
     private ExoPlayer currentPlayer;
     private Player.Listener playerListener;
+    private boolean playerListenerAttached = false;
+
     private int position;
 
     private ImageView coverView;
@@ -76,11 +84,11 @@ public class VideoPageFragment extends Fragment {
     private View musicDiscView;
     private ObjectAnimator musicDiscAnimator;
 
-    private ImageView playIndicator;          // 中间播放键
-    private FrameLayout heartAnimLayer;       // 双击爱心动画容器
+    private ImageView playIndicator;      // 中间播放键
+    private FrameLayout heartAnimLayer;   // 双击爱心动画容器
 
-    private boolean wasPlayingBeforeScrub = false;
-
+    // ✅ 关键：第一帧兜底标记，确保“隐藏封面”只执行一次，且在每次 bind 时重置
+    private boolean firstFrameRendered = false;
 
     public static VideoPageFragment newInstance(FeedItem item, int position) {
         VideoPageFragment fragment = new VideoPageFragment();
@@ -91,29 +99,23 @@ public class VideoPageFragment extends Fragment {
         return fragment;
     }
 
-    public String getVideoUrl() {
-        return videoUrl;
-    }
-
-    public int getPosition() {
-        return position;
-    }
-
-    public PlayerView getPlayerView() {
-        return playerView;
-    }
+    public String getVideoUrl() { return videoUrl; }
+    public int getPosition() { return position; }
+    public PlayerView getPlayerView() { return playerView; }
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater,
+                             @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_video_page, container, false);
+
         feedItem = (FeedItem) getArguments().getSerializable(ARG_FEED);
         position = getArguments().getInt(ARG_POSITION, -1);
-        if (feedItem != null) {
-            videoUrl = feedItem.getVideoUrl();
-        }
+        if (feedItem != null) videoUrl = feedItem.getVideoUrl();
 
         playerView = root.findViewById(R.id.video_player_view);
+        playerView.setBackgroundColor(Color.TRANSPARENT);
         coverView = root.findViewById(R.id.video_cover);
 
         TextView author = root.findViewById(R.id.video_author);
@@ -128,15 +130,18 @@ public class VideoPageFragment extends Fragment {
         likeButton = root.findViewById(R.id.video_like_button);
         collectButton = root.findViewById(R.id.video_collect_button);
         ImageView backButton = root.findViewById(R.id.video_back_button);
+
         LinearLayout likeContainer = root.findViewById(R.id.action_like);
         LinearLayout commentContainer = root.findViewById(R.id.action_comment);
         LinearLayout collectContainer = root.findViewById(R.id.action_collect);
         LinearLayout shareContainer = root.findViewById(R.id.action_share);
+
         View commentEntryBar = root.findViewById(R.id.comment_entry_bar);
         View commentEntryText = root.findViewById(R.id.comment_entry_text);
         View commentEntryImage = root.findViewById(R.id.comment_entry_image);
         View commentEntryMention = root.findViewById(R.id.comment_entry_mention);
         View commentEntryEmoji = root.findViewById(R.id.comment_entry_emoji);
+
         timeBar = root.findViewById(R.id.video_time_bar);
 
         musicDiscView = root.findViewById(R.id.video_music_disc);
@@ -144,6 +149,12 @@ public class VideoPageFragment extends Fragment {
 
         playIndicator = root.findViewById(R.id.video_pause_indicator);
         heartAnimLayer = root.findViewById(R.id.heart_anim_layer);
+
+        // ✅ 关键：创建页时先让封面可见（避免复用/复进时状态脏）
+        if (coverView != null) {
+            coverView.setVisibility(View.VISIBLE);
+            coverView.setAlpha(1f);
+        }
 
         if (feedItem != null) {
             author.setText("@" + feedItem.getAuthorName());
@@ -161,18 +172,18 @@ public class VideoPageFragment extends Fragment {
                 Glide.with(this)
                         .load(feedItem.getCoverUrl())
                         .centerCrop()
-                        .placeholder(R.drawable.video_placeholder) // 没有就先随便放一个占位图资源
+                        .placeholder(R.drawable.video_placeholder)
                         .into(coverView);
             }
         }
 
-
+        // 手势
         gestureDetector = new GestureDetectorCompat(requireContext(),
                 new GestureDetector.SimpleOnGestureListener() {
 
                     @Override
                     public boolean onDown(MotionEvent e) {
-                        return true; // 必须返回 true 才能继续收到后续事件（包括双击）
+                        return true; // 必须 true
                     }
 
                     @Override
@@ -183,21 +194,21 @@ public class VideoPageFragment extends Fragment {
 
                     @Override
                     public boolean onSingleTapConfirmed(MotionEvent e) {
-                        togglePlayPause(); // 不再传参，用成员 playIndicator
+                        togglePlayPause();
                         return true;
                     }
                 });
 
         playerView.setClickable(true);
 
+        // ✅ 更稳：只在 ACTION_UP 时消费 handled，避免影响 ViewPager2 滑动/选中
         playerView.setOnTouchListener((v, event) -> {
             boolean handled = gestureDetector.onTouchEvent(event);
-
-            // handled == true  → 单击 / 双击 → 我们自己吃掉
-            // handled == false → 滑动 → 交给 ViewPager2 处理上下滑
-            return handled;
+            if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                return handled;
+            }
+            return false;
         });
-
 
         View.OnClickListener commentClick = v -> showComments();
         commentButton.setOnClickListener(commentClick);
@@ -210,12 +221,16 @@ public class VideoPageFragment extends Fragment {
 
         shareButton.setOnClickListener(v -> Toast.makeText(requireContext(), "分享功能待接入", Toast.LENGTH_SHORT).show());
         shareContainer.setOnClickListener(v -> Toast.makeText(requireContext(), "分享功能待接入", Toast.LENGTH_SHORT).show());
+
         likeButton.setOnClickListener(v -> toggleLikeByButton());
         likeContainer.setOnClickListener(v -> toggleLikeByButton());
+
         collectButton.setOnClickListener(v -> toggleCollect());
         collectContainer.setOnClickListener(v -> toggleCollect());
+
         backButton.setOnClickListener(v -> requireActivity().finish());
 
+        // 进度条拖拽
         timeBar.addListener(new TimeBar.OnScrubListener() {
             @Override
             public void onScrubStart(TimeBar timeBar, long position) {
@@ -226,10 +241,7 @@ public class VideoPageFragment extends Fragment {
                 }
             }
 
-            @Override
-            public void onScrubMove(TimeBar timeBar, long position) {
-                // no-op
-            }
+            @Override public void onScrubMove(TimeBar timeBar, long position) { }
 
             @Override
             public void onScrubStop(TimeBar timeBar, long position, boolean canceled) {
@@ -237,26 +249,214 @@ public class VideoPageFragment extends Fragment {
                 if (currentPlayer != null) {
                     currentPlayer.seekTo(position);
                     currentPlayer.setPlayWhenReady(wasPlayingBeforeScrub);
-                    // 同步中间播放键
                     if (playIndicator != null) {
                         playIndicator.setVisibility(wasPlayingBeforeScrub ? View.GONE : View.VISIBLE);
                         playIndicator.setAlpha(0.65f);
                     }
+                    setMusicDiscSpinning(wasPlayingBeforeScrub);
                 }
                 scheduleProgressUpdate();
             }
         });
 
+        logCover("onCreateView end");
         return root;
     }
 
-    //双击爱心动画
+    // 绑定播放器：每次都重置 firstFrame + 先显示封面，然后等待第一帧再隐藏
+    public void bindPlayer(@NonNull ExoPlayer player, @NonNull String url, boolean playWhenReady) {
+        // ① 防止重复绑定同一个 player
+        if (currentPlayer == player
+                && TextUtils.equals(videoUrl, url)
+                && playerListenerAttached) {
+            return;
+        }
+
+        // ② 如果是切换 player，先解旧 listener（不 return）
+        if (currentPlayer != null && currentPlayer != player && playerListenerAttached) {
+            currentPlayer.removeListener(playerListener);
+            playerListenerAttached = false;
+        }
+
+        currentPlayer = player;
+        videoUrl = url;
+
+        firstFrameRendered = false;
+        if (coverView != null) {
+            coverView.setAlpha(1f);
+            coverView.setVisibility(View.VISIBLE);
+        }
+        logCover("bindPlayer after show cover");
+        playerView.setPlayer(player);
+        attachPlayerListener();
+
+        player.setPlayWhenReady(playWhenReady);
+        // ✅ 这里补上 prepare，避免某些路径下没 prepare 导致时序怪
+        player.prepare();
+        logPlayerViewLayers("after prepare");
+        logCover("bindPlayer after prepare");
+        scheduleProgressUpdate();
+
+        if (playIndicator != null) {
+            if (playWhenReady) {
+                playIndicator.setVisibility(View.GONE);
+            } else {
+                playIndicator.setAlpha(0.65f);
+                playIndicator.setVisibility(View.VISIBLE);
+            }
+        }
+        setMusicDiscSpinning(playWhenReady);
+
+        // ✅ 超级兜底：800ms 后如果在播但封面还在，就强制关（解决极少数不回调 firstFrame）
+        playerView.postDelayed(() -> {
+            if (!isAdded()) return;
+            if (currentPlayer != null && currentPlayer.getPlayWhenReady()) {
+                if (coverView != null && coverView.getVisibility() == View.VISIBLE) {
+                    coverView.setVisibility(View.GONE);
+                    if (getActivity() instanceof VideoFeedActivity) {
+                        ((VideoFeedActivity) getActivity()).hideTransitionCoverWithFade();
+                    }
+                }
+            }
+        }, 800);
+    }
+
+    public void clearPlayer() {
+        if (currentPlayer != null && playerListenerAttached) {
+            currentPlayer.removeListener(playerListener);
+        }
+        playerListenerAttached = false;
+        currentPlayer = null;
+
+        if (playerView != null) {
+            playerView.setPlayer(null);
+        }
+
+        progressHandler.removeCallbacksAndMessages(null);
+        updateTimeBar();
+
+        setMusicDiscSpinning(false);
+
+        if (playIndicator != null) {
+            playIndicator.setAlpha(0.65f);
+            playIndicator.setVisibility(View.GONE);
+        }
+
+        logCover("clearPlayer");
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        clearPlayer();
+
+        if (musicDiscAnimator != null) {
+            musicDiscAnimator.cancel();
+            musicDiscAnimator = null;
+        }
+        musicDiscView = null;
+        playerView = null;
+    }
+
+    private void attachPlayerListener() {
+        if (playerListenerAttached || currentPlayer == null) return;
+
+        if (playerListener == null) {
+            playerListener = new Player.Listener() {
+
+                @Override
+                public void onRenderedFirstFrame() {
+                    if (firstFrameRendered) return;
+                    firstFrameRendered = true;
+                    logCover("onRenderedFirstFrame BEFORE");
+                    logPlayerViewLayers("firstFrame BEFORE");
+                    if (coverView != null) coverView.setVisibility(View.GONE);
+
+                    // ✅ 兜底隐藏 Activity 的转场封面（解决你“有声音但封面不消失”的偶发）
+                    if (getActivity() instanceof VideoFeedActivity) {
+                        ((VideoFeedActivity) getActivity()).hideTransitionCoverWithFade();
+                    }
+                    logCover("onRenderedFirstFrame AFTER");
+                    logPlayerViewLayers("firstFrame AFTER");
+                }
+
+                @Override
+                public void onPlaybackStateChanged(int playbackState) {
+                    logCover("onPlaybackStateChanged=" + playbackState);
+                    updateTimeBar();
+                    if (playbackState == Player.STATE_ENDED) {
+                        setMusicDiscSpinning(false);
+                    }
+                }
+            };
+        }
+
+        currentPlayer.addListener(playerListener);
+        playerListenerAttached = true;
+    }
+
+    // -------- 点赞 / 收藏 --------
+
+    private void handleDoubleTap(MotionEvent e) {
+        showDoubleTapHeart(e.getX(), e.getY());
+        if (!liked) {
+            setLiked(true, true);
+        }
+    }
+
+    private void setLiked(boolean newLiked, boolean updateCount) {
+        liked = newLiked;
+        int baseCount = feedItem != null ? feedItem.getLikeCount() : 0;
+        if (updateCount) {
+            int displayCount = liked ? baseCount + 1 : baseCount;
+            likeCountView.setText(String.valueOf(displayCount));
+        }
+        likeButton.setImageResource(liked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
+    }
+
+    private void toggleLikeByButton() {
+        setLiked(!liked, true);
+    }
+
+    private void toggleCollect() {
+        collected = !collected;
+        int displayCount = collected ? baseCollectCount + 1 : baseCollectCount;
+        collectCountView.setText(String.valueOf(displayCount));
+        collectButton.setImageResource(collected ? R.drawable.ic_star_filled : R.drawable.ic_star_outline);
+    }
+
+    // -------- 播放 / 暂停 --------
+
+    private void togglePlayPause() {
+        if (currentPlayer == null || playIndicator == null) return;
+
+        boolean wasPlaying = currentPlayer.getPlayWhenReady();
+        boolean nowPlaying = !wasPlaying;
+        currentPlayer.setPlayWhenReady(nowPlaying);
+
+        if (nowPlaying) {
+            playIndicator.animate().alpha(0f).setDuration(120).withEndAction(() -> {
+                playIndicator.setVisibility(View.GONE);
+                playIndicator.setAlpha(0.65f);
+            }).start();
+        } else {
+            playIndicator.setAlpha(0f);
+            playIndicator.setVisibility(View.VISIBLE);
+            playIndicator.animate().alpha(0.65f).setDuration(120).start();
+        }
+
+        setMusicDiscSpinning(nowPlaying);
+    }
+
+    // -------- 双击爱心动画 --------
+
     private void showDoubleTapHeart(float x, float y) {
         if (heartAnimLayer == null || playerView == null) return;
 
         ImageView heart = new ImageView(requireContext());
-        int size = (int) (120 * getResources().getDisplayMetrics().density);
         heart.setImageResource(R.drawable.ic_heart_big_filled);
+
+        int size = (int) (120 * getResources().getDisplayMetrics().density);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(size, size);
         heart.setLayoutParams(lp);
 
@@ -268,8 +468,16 @@ public class VideoPageFragment extends Fragment {
         float layerX = (pvLoc[0] + x) - layerLoc[0];
         float layerY = (pvLoc[1] + y) - layerLoc[1];
 
-        heart.setX(layerX - size / 2f);
-        heart.setY(layerY - size / 2f);
+        float cx = layerX - size / 2f;
+        float cy = layerY - size / 2f;
+
+        if (heartAnimLayer.getWidth() > 0 && heartAnimLayer.getHeight() > 0) {
+            cx = Math.max(0, Math.min(cx, heartAnimLayer.getWidth() - size));
+            cy = Math.max(0, Math.min(cy, heartAnimLayer.getHeight() - size));
+        }
+
+        heart.setX(cx);
+        heart.setY(cy);
 
         heart.setScaleX(0.2f);
         heart.setScaleY(0.2f);
@@ -277,30 +485,22 @@ public class VideoPageFragment extends Fragment {
 
         heartAnimLayer.addView(heart);
 
-        float dy = 120 * getResources().getDisplayMetrics().density;
+        float dy = 160 * getResources().getDisplayMetrics().density;
 
         heart.animate()
-                .alpha(1f).scaleX(1f).scaleY(1f)
+                .alpha(1f).scaleX(1.15f).scaleY(1.15f)
                 .setDuration(160)
                 .withEndAction(() -> heart.animate()
                         .translationYBy(-dy)
                         .alpha(0f)
-                        .setDuration(320)
+                        .scaleX(1.0f).scaleY(1.0f)
+                        .setDuration(420)
                         .withEndAction(() -> heartAnimLayer.removeView(heart))
                         .start())
                 .start();
     }
 
-    private void handleDoubleTap(MotionEvent e) {
-        Log.d("Gesture", "double tap x=" + e.getX() + ", y=" + e.getY());
-        // 每次双击都要有爱心动画
-        showDoubleTapHeart(e.getX(), e.getY());
-
-        // 只有第一次双击才真正点赞（+1 + 变红）
-        if (!liked) {
-            setLiked(true, true);
-        }
-    }
+    // -------- 头像 / 文案 --------
 
     private void bindAvatar(String avatarUrl) {
         Glide.with(this)
@@ -325,8 +525,7 @@ public class VideoPageFragment extends Fragment {
         if (!collapsed) {
             SpannableStringBuilder builder = new SpannableStringBuilder(fullText + " 收起");
             builder.setSpan(new ClickableSpan() {
-                @Override
-                public void onClick(@NonNull View widget) {
+                @Override public void onClick(@NonNull View widget) {
                     applyCollapsedText(fullText, true);
                 }
             }, fullText.length() + 1, fullText.length() + 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -349,8 +548,7 @@ public class VideoPageFragment extends Fragment {
                 int start = display.indexOf("展开");
                 if (start >= 0) {
                     builder.setSpan(new ClickableSpan() {
-                        @Override
-                        public void onClick(@NonNull View widget) {
+                        @Override public void onClick(@NonNull View widget) {
                             applyCollapsedText(fullText, false);
                         }
                     }, start, start + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -360,41 +558,24 @@ public class VideoPageFragment extends Fragment {
         });
     }
 
-    private void setLiked(boolean newLiked, boolean updateCount) {
-        liked = newLiked;
-
-        int baseCount = feedItem != null ? feedItem.getLikeCount() : 0;
-        if (updateCount) {
-            int displayCount = liked ? baseCount + 1 : baseCount;
-            likeCountView.setText(String.valueOf(displayCount));
-        }
-
-        likeButton.setImageResource(liked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
+    private void showComments() {
+        CommentBottomSheetDialog dialog = new CommentBottomSheetDialog();
+        dialog.setOnCommentAddedListener(totalCount ->
+                commentCountView.setText(String.valueOf(Math.max(totalCount, baseCommentCount))));
+        dialog.show(getChildFragmentManager(), "comments");
     }
 
-    private void toggleLikeByButton() {
-        // 按钮点击允许取消/恢复，并更新计数
-        setLiked(!liked, true);
-    }
+    // -------- 转盘 --------
 
-
-    private void toggleCollect() {
-        collected = !collected;
-        int displayCount = collected ? baseCollectCount + 1 : baseCollectCount;
-        collectCountView.setText(String.valueOf(displayCount));
-        collectButton.setImageResource(collected ? R.drawable.ic_star_filled : R.drawable.ic_star_outline);
-    }
-
-    //音乐转盘旋转动画
     private void setupMusicDiscRotation() {
         if (musicDiscView == null) return;
 
         musicDiscAnimator = ObjectAnimator.ofFloat(musicDiscView, View.ROTATION, 0f, 360f);
-        musicDiscAnimator.setDuration(6000L); // 6秒一圈
+        musicDiscAnimator.setDuration(6000L);
         musicDiscAnimator.setInterpolator(new LinearInterpolator());
         musicDiscAnimator.setRepeatCount(ValueAnimator.INFINITE);
         musicDiscAnimator.setRepeatMode(ValueAnimator.RESTART);
-        // 关键：先 start 一下再 pause，保证后续 resume 生效
+
         musicDiscAnimator.start();
         musicDiscAnimator.pause();
     }
@@ -409,130 +590,7 @@ public class VideoPageFragment extends Fragment {
         }
     }
 
-    private void togglePlayPause() {
-        if (currentPlayer == null || playIndicator == null) return;
-
-        boolean wasPlaying = currentPlayer.getPlayWhenReady();
-        boolean nowPlaying = !wasPlaying;
-        currentPlayer.setPlayWhenReady(nowPlaying);
-
-        if (nowPlaying) {
-            // 播放：隐藏中间播放键
-            playIndicator.animate().alpha(0f).setDuration(120).withEndAction(() -> {
-                playIndicator.setVisibility(View.GONE);
-                playIndicator.setAlpha(0.65f);
-            }).start();
-        } else {
-            // 暂停：显示中间播放键
-            playIndicator.setAlpha(0f);
-            playIndicator.setVisibility(View.VISIBLE);
-            playIndicator.animate().alpha(0.65f).setDuration(120).start();
-        }
-
-        setMusicDiscSpinning(nowPlaying);
-    }
-
-
-    private void showComments() {
-        CommentBottomSheetDialog dialog = new CommentBottomSheetDialog();
-        dialog.setOnCommentAddedListener(totalCount -> commentCountView.setText(String.valueOf(Math.max(totalCount, baseCommentCount))));
-        dialog.show(getChildFragmentManager(), "comments");
-    }
-
-    public void bindPlayer(@NonNull ExoPlayer player, @NonNull String url, boolean playWhenReady) {
-        Log.d("VP", "bindPlayer pos=" + position + " playWhenReady? " + player.getPlayWhenReady() + " url=" + url);
-        if (currentPlayer != null && currentPlayer != player && playerListenerAttached) {
-            currentPlayer.removeListener(playerListener);
-            playerListenerAttached = false;
-        }
-        currentPlayer = player;
-        videoUrl = url;
-        playerView.setPlayer(player);
-        attachPlayerListener();
-        scheduleProgressUpdate();
-
-        if (playIndicator != null) {
-            if (playWhenReady) {
-                playIndicator.setVisibility(View.GONE);
-            } else {
-                playIndicator.setAlpha(0.65f);
-                playIndicator.setVisibility(View.VISIBLE);
-            }
-        }
-        setMusicDiscSpinning(playWhenReady);
-
-    }
-
-    public void clearPlayer() {
-        if (currentPlayer != null && playerListenerAttached) {
-            currentPlayer.removeListener(playerListener);
-        }
-        playerListenerAttached = false;
-        currentPlayer = null;
-        if (playerView != null) {
-            playerView.setPlayer(null);
-        }
-        progressHandler.removeCallbacksAndMessages(null);
-        updateTimeBar();
-
-        setMusicDiscSpinning(false);
-
-        if (playIndicator != null) {
-            playIndicator.setAlpha(0.65f);
-            playIndicator.setVisibility(View.GONE);
-        }
-
-    }
-
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        clearPlayer();
-
-        if (musicDiscAnimator != null) {
-            musicDiscAnimator.cancel();
-            musicDiscAnimator = null;
-        }
-        musicDiscView = null;
-
-        playerView = null;
-    }
-
-
-    private void attachPlayerListener() {
-        if (playerListenerAttached || currentPlayer == null) {
-            return;
-        }
-        if (playerListener == null) {
-            playerListener = new Player.Listener() {
-                @Override
-                public void onTimelineChanged(@NonNull com.google.android.exoplayer2.Timeline timeline, int reason) {
-                    updateTimeBar();
-                }
-
-                @Override
-                public void onPlaybackStateChanged(int playbackState) {
-                    Log.d("VP", "state=" + playbackState + " playWhenReady=" + (currentPlayer != null && currentPlayer.getPlayWhenReady()));
-
-                    updateTimeBar();
-
-                    if (playbackState == Player.STATE_READY) {
-                        // 缓冲好：隐藏封面
-                        if (coverView != null) {
-                            coverView.setVisibility(View.GONE);
-                        }
-                        // READY 时按 playWhenReady 决定是否转
-                        setMusicDiscSpinning(currentPlayer != null && currentPlayer.getPlayWhenReady());
-                    } else if (playbackState == Player.STATE_ENDED) {
-                        // 播放结束：停转
-                        setMusicDiscSpinning(false);
-                    }
-                }
-            };
-        }
-        currentPlayer.addListener(playerListener);
-        playerListenerAttached = true;
-    }
+    // -------- 进度条 --------
 
     private void scheduleProgressUpdate() {
         progressHandler.removeCallbacksAndMessages(null);
@@ -559,14 +617,53 @@ public class VideoPageFragment extends Fragment {
         long duration = currentPlayer.getDuration();
         long position = currentPlayer.getCurrentPosition();
         long buffered = currentPlayer.getBufferedPosition();
+
         if (duration == C.TIME_UNSET || duration <= 0) {
             timeBar.setEnabled(false);
             return;
         }
+
         timeBar.setEnabled(true);
         timeBar.setDuration(duration);
         timeBar.setPosition(position);
         timeBar.setBufferedPosition(buffered);
+    }
+
+    private void logCover(String where) {
+        String frag = (coverView == null)
+                ? "null"
+                : ("vis=" + coverView.getVisibility() + ",alpha=" + coverView.getAlpha());
+
+        String act = "no-activity";
+        if (getActivity() instanceof VideoFeedActivity) {
+            act = ((VideoFeedActivity) getActivity()).debugTransitionCoverState();
+        } else {
+            act = "activity-not-VideoFeedActivity";
+        }
+
+        Log.d("COVER", where
+                + " pos=" + position
+                + " firstFrame=" + firstFrameRendered
+                + " fragCover(" + frag + ")"
+                + " actCover(" + act + ")"
+                + " playWhenReady=" + (currentPlayer != null && currentPlayer.getPlayWhenReady())
+                + " state=" + (currentPlayer != null ? currentPlayer.getPlaybackState() : -1));
+    }
+
+    private void logPlayerViewLayers(String where) {
+        if (playerView == null) {
+            Log.d("PV", where + " playerView=null pos=" + position);
+            return;
+        }
+        View shutter = playerView.findViewById(com.google.android.exoplayer2.ui.R.id.exo_shutter);
+        ImageView artwork = playerView.findViewById(com.google.android.exoplayer2.ui.R.id.exo_artwork);
+
+        String s1 = (shutter == null) ? "shutter=null"
+                : ("shutter(vis=" + shutter.getVisibility() + ",alpha=" + shutter.getAlpha() + ",shown=" + shutter.isShown() + ")");
+        String s2 = (artwork == null) ? "artwork=null"
+                : ("artwork(vis=" + artwork.getVisibility() + ",alpha=" + artwork.getAlpha() + ",shown=" + artwork.isShown() + ")");
+
+        Log.d("PV", where + " pos=" + position + " " + s1 + " " + s2);
     }
 
 }

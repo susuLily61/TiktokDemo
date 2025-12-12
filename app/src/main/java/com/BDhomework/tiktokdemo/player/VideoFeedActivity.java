@@ -14,6 +14,8 @@ import com.BDhomework.tiktokdemo.model.FeedItem;
 import com.bumptech.glide.Glide;
 
 import java.util.ArrayList;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 
 public class VideoFeedActivity extends AppCompatActivity {
 
@@ -25,7 +27,8 @@ public class VideoFeedActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        // 可以保留共享元素配置
+        getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        getWindow().getDecorView().setBackgroundColor(Color.TRANSPARENT);
         getWindow().requestFeature(Window.FEATURE_CONTENT_TRANSITIONS);
 
         super.onCreate(savedInstanceState);
@@ -91,4 +94,12 @@ public class VideoFeedActivity extends AppCompatActivity {
                 })
                 .start();
     }
+
+    public String debugTransitionCoverState() {
+        if (transitionCover == null) return "null";
+        return "vis=" + transitionCover.getVisibility()
+                + ",alpha=" + transitionCover.getAlpha()
+                + ",shown=" + transitionCover.isShown();
+    }
+
 }
