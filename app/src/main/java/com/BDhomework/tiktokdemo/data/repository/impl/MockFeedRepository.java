@@ -1,7 +1,8 @@
-package com.BDhomework.tiktokdemo.data;
+package com.BDhomework.tiktokdemo.data.repository.impl;
 
 import com.BDhomework.tiktokdemo.model.Comment;
 import com.BDhomework.tiktokdemo.model.FeedItem;
+import com.BDhomework.tiktokdemo.data.repository.FeedRepository;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,9 +11,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
-import java.util.UUID;
 
-public class MockFeedRepository {
+public class MockFeedRepository implements FeedRepository {
 
     // 封面池
     private static final List<String> COVER_POOL = Arrays.asList(
@@ -145,6 +145,7 @@ public class MockFeedRepository {
 
     private static int rotateIndex = 0;
 
+    @Override
     public List<FeedItem> loadFeed(int page) {
         List<FeedItem> rotated = new ArrayList<>(ALL_FEED);
         int total = rotated.size();

@@ -6,9 +6,11 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityOptionsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.RecyclerView;
@@ -16,19 +18,18 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.BDhomework.tiktokdemo.R;
+import com.BDhomework.tiktokdemo.data.repository.impl.MockFeedRepository;
 import com.BDhomework.tiktokdemo.model.FeedItem;
 import com.BDhomework.tiktokdemo.player.VideoFeedActivity;
 
 import java.util.ArrayList;
 import java.util.List;
-import androidx.core.app.ActivityOptionsCompat;
 
 public class RecommendFragment extends Fragment implements FeedAdapter.OnFeedClickListener {
 
     private FeedViewModel viewModel;
     private FeedAdapter adapter;
     private SwipeRefreshLayout swipeRefreshLayout;
-    private boolean isLoadingMore = false;
 
     public static RecommendFragment newInstance() {
         return new RecommendFragment();
@@ -57,14 +58,14 @@ public class RecommendFragment extends Fragment implements FeedAdapter.OnFeedCli
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
-                if (dy > 0 && !isLoadingMore) {
+                FeedUiState state = viewModel.getUiState().getValue();
+                boolean loadingMore = state != null && state.isLoadingMore();
+                if (dy > 0 && !loadingMore) {
                     StaggeredGridLayoutManager manager = (StaggeredGridLayoutManager) recyclerView.getLayoutManager();
                     if (manager != null) {
                         int[] lastPositions = manager.findLastVisibleItemPositions(null);
                         int last = Math.max(lastPositions[0], lastPositions[1]);
                         if (last >= adapter.getItemCount() - 3) {
-                            isLoadingMore = true;
-                            footerProgress.setVisibility(View.VISIBLE);
                             viewModel.loadMore();
                         }
                     }
@@ -74,17 +75,22 @@ public class RecommendFragment extends Fragment implements FeedAdapter.OnFeedCli
 
         swipeRefreshLayout.setOnRefreshListener(() -> viewModel.refresh());
 
-        viewModel = new ViewModelProvider(this).get(FeedViewModel.class);
-        viewModel.getFeedLiveData().observe(getViewLifecycleOwner(), feedItems -> {
-            adapter.submitList(feedItems);
-            swipeRefreshLayout.setRefreshing(false);
-            isLoadingMore = false;
-            footerProgress.setVisibility(View.GONE);
+        FeedViewModelFactory factory = new FeedViewModelFactory(new MockFeedRepository());
+        viewModel = new ViewModelProvider(this, factory).get(FeedViewModel.class);
+        viewModel.getUiState().observe(getViewLifecycleOwner(), state -> {
+            adapter.submitList(state.getItems());
+            swipeRefreshLayout.setRefreshing(state.isRefreshing());
+            footerProgress.setVisibility(state.isLoadingMore() ? View.VISIBLE : View.GONE);
+
+            if (state.getErrorMessage() != null) {
+                Toast.makeText(requireContext(), state.getErrorMessage(), Toast.LENGTH_SHORT).show();
+            }
         });
 
-        if (viewModel.getFeedLiveData().getValue() == null || viewModel.getFeedLiveData().getValue().isEmpty()) {
+        FeedUiState currentState = viewModel.getUiState().getValue();
+        if (currentState == null || currentState.getItems().isEmpty()) {
             swipeRefreshLayout.setRefreshing(true);
-            viewModel.loadInitial();
+            viewModel.refresh();
         }
 
         return root;
@@ -92,10 +98,10 @@ public class RecommendFragment extends Fragment implements FeedAdapter.OnFeedCli
 
     @Override
     public void onFeedClick(View sharedView, int position, FeedItem item) {
-        List<FeedItem> current = viewModel.getFeedLiveData().getValue();
+        FeedUiState current = viewModel.getUiState().getValue();
         if (current != null) {
             Intent intent = new Intent(requireContext(), VideoFeedActivity.class);
-            intent.putExtra(VideoFeedActivity.EXTRA_FEED_LIST, new ArrayList<>(current));
+            intent.putExtra(VideoFeedActivity.EXTRA_FEED_LIST, new ArrayList<>(current.getItems()));
             intent.putExtra(VideoFeedActivity.EXTRA_FEED_ID, item.getId());
             intent.putExtra(VideoFeedActivity.EXTRA_FEED_POSITION, position);
 

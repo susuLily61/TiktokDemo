@@ -12,7 +12,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.BDhomework.tiktokdemo.R;
-import com.BDhomework.tiktokdemo.data.MockFeedRepository;
+import com.BDhomework.tiktokdemo.data.repository.impl.MockFeedRepository;
 import com.BDhomework.tiktokdemo.model.Comment;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 
