@@ -24,9 +24,9 @@ public class CommentAdapter extends RecyclerView.Adapter<CommentAdapter.CommentV
         notifyDataSetChanged();
     }
 
-    public void addComment(Comment comment) {
-        data.add(comment);
-        notifyItemInserted(data.size() - 1);
+    public void prependComment(Comment comment) {
+        data.add(0, comment);
+        notifyItemInserted(0);
     }
 
     @NonNull

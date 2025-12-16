@@ -14,21 +14,30 @@
         android:textSize="18sp"
         android:textStyle="bold" />
 
-    <!-- 用 ScrollView + LinearLayout 替代 RecyclerView -->
-    <ScrollView
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/comment_list"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="12dp"
-        android:layout_weight="1">
+        android:layout_weight="1" />
 
-        <LinearLayout
-            android:id="@+id/comment_container"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-    </ScrollView>
+    <ProgressBar
+        android:id="@+id/comment_loading"
+        style="?android:attr/progressBarStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:visibility="gone" />
 
-    <!-- 底部输入栏保留不变 -->
+    <TextView
+        android:id="@+id/comment_error"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="#FF3B30"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

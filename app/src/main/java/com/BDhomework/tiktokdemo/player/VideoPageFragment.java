@@ -32,6 +32,8 @@ import androidx.fragment.app.Fragment;
 
 import com.BDhomework.tiktokdemo.R;
 import com.BDhomework.tiktokdemo.comment.CommentBottomSheetDialog;
+import com.BDhomework.tiktokdemo.comment.CommentViewModelFactory;
+import com.BDhomework.tiktokdemo.data.repository.impl.MockFeedRepository;
 import com.BDhomework.tiktokdemo.model.FeedItem;
 import com.bumptech.glide.Glide;
 import com.google.android.exoplayer2.C;
@@ -559,7 +561,8 @@ public class VideoPageFragment extends Fragment {
     }
 
     private void showComments() {
-        CommentBottomSheetDialog dialog = new CommentBottomSheetDialog();
+        CommentBottomSheetDialog dialog = CommentBottomSheetDialog.newInstance(feedItem != null ? feedItem.getId() : "");
+        dialog.setViewModelFactory(new CommentViewModelFactory(new MockFeedRepository()));
         dialog.setOnCommentAddedListener(totalCount ->
                 commentCountView.setText(String.valueOf(Math.max(totalCount, baseCommentCount))));
         dialog.show(getChildFragmentManager(), "comments");

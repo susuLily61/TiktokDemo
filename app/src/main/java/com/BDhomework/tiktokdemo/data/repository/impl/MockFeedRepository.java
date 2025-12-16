@@ -1,15 +1,18 @@
 package com.BDhomework.tiktokdemo.data.repository.impl;
 
+import com.BDhomework.tiktokdemo.data.repository.CommentPage;
+import com.BDhomework.tiktokdemo.data.repository.FeedRepository;
 import com.BDhomework.tiktokdemo.model.Comment;
 import com.BDhomework.tiktokdemo.model.FeedItem;
-import com.BDhomework.tiktokdemo.data.repository.FeedRepository;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
 
 public class MockFeedRepository implements FeedRepository {
@@ -80,9 +83,23 @@ public class MockFeedRepository implements FeedRepository {
     );
 
     private static final Random RANDOM = new Random();
-    private static final int PAGE_SIZE = 10;
     // 这里存“所有固定的 mock 数据”
     private static final List<FeedItem> ALL_FEED = new ArrayList<>();
+
+    private static final List<Comment> BASE_COMMENTS = Arrays.asList(
+            new Comment("小明", "太酷了，想去现场看看！"),
+            new Comment("Ava", "画质也太好了吧"),
+            new Comment("Coder", "试试看 ExoPlayer 体验如何"),
+            new Comment("路人甲", "双击点赞的动画可以优化~"),
+            new Comment("旅行者", "封面配色很舒服"),
+            new Comment("摄影迷", "后期色调很喜欢"),
+            new Comment("老友", "记得补充字幕~"),
+            new Comment("旅途中的猫", "音乐也好好听"),
+            new Comment("夏日", "拍摄地点在哪里呀"),
+            new Comment("晚风", "请出教程！")
+    );
+
+    private static final Map<String, List<Comment>> COMMENT_STORAGE = new HashMap<>();
 
     private static String randomDate() {
         Calendar cal = Calendar.getInstance();
@@ -157,16 +174,33 @@ public class MockFeedRepository implements FeedRepository {
         return rotated;
     }
 
+    private List<Comment> getComments(String feedId) {
+        return COMMENT_STORAGE.computeIfAbsent(feedId, id -> {
+            List<Comment> list = new ArrayList<>();
+            for (int i = 0; i < 3; i++) {
+                list.addAll(BASE_COMMENTS);
+            }
+            return list;
+        });
+    }
 
+    @Override
+    public CommentPage loadComments(String feedId, int page, int pageSize) {
+        List<Comment> comments = getComments(feedId);
+        int start = page * pageSize;
+        if (start >= comments.size()) {
+            return new CommentPage(Collections.emptyList(), false);
+        }
+        int end = Math.min(start + pageSize, comments.size());
+        boolean hasMore = end < comments.size();
+        return new CommentPage(new ArrayList<>(comments.subList(start, end)), hasMore);
+    }
 
-    public List<Comment> mockComments() {
-        return Arrays.asList(
-                new Comment("小明", "太酷了，想去现场看看！"),
-                new Comment("Ava", "画质也太好了吧"),
-                new Comment("Coder", "试试看 ExoPlayer 体验如何"),
-                new Comment("路人甲", "双击点赞的动画可以优化~"),
-                new Comment("旅行者", "封面配色很舒服")
-        );
+    @Override
+    public Comment sendComment(String feedId, String content) {
+        Comment comment = new Comment("我", content);
+        getComments(feedId).add(0, comment);
+        return comment;
     }
 
 }
