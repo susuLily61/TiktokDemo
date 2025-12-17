@@ -2,19 +2,18 @@ package com.BDhomework.tiktokdemo.player;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.BDhomework.tiktokdemo.R;
 import com.BDhomework.tiktokdemo.model.FeedItem;
 import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.Player;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -31,6 +30,8 @@ public class VideoFeedFragment extends Fragment {
     private ArrayList<FeedItem> feedItems;
     private int startPosition = 0;
     private VideoPlayerManager playerManager;
+    private VideoFeedViewModel viewModel;
+    private int lastHandledIndex = -1;
 
     public static VideoFeedFragment newInstance(List<FeedItem> feedItems, int startPosition) {
         VideoFeedFragment fragment = new VideoFeedFragment();
@@ -64,13 +65,18 @@ public class VideoFeedFragment extends Fragment {
 
         if (feedItems == null || feedItems.isEmpty()) return;
 
-        adapter = new VideoPagerAdapter(this, feedItems);
+        viewModel = new ViewModelProvider(this,
+                new VideoFeedViewModel.Factory(feedItems, startPosition))
+                .get(VideoFeedViewModel.class);
+
+        adapter = new VideoPagerAdapter(this, new ArrayList<>(feedItems));
         viewPager2.setAdapter(adapter);
         viewPager2.setOrientation(ViewPager2.ORIENTATION_VERTICAL);
         viewPager2.registerOnPageChangeCallback(pageChangeCallback);
         viewPager2.setCurrentItem(startPosition, false);
 
-        viewPager2.post(() -> handlePageSelected(startPosition));
+        viewModel.getUiState().observe(getViewLifecycleOwner(), this::renderState);
+        viewPager2.post(() -> viewModel.onPageSelected(viewModel.getCurrentIndex()));
     }
 
     @Override
@@ -83,9 +89,26 @@ public class VideoFeedFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         viewPager2.unregisterOnPageChangeCallback(pageChangeCallback);
+        lastHandledIndex = -1;
     }
 
-    private void handlePageSelected(int position) {
+    private void renderState(@Nullable VideoFeedUiState state) {
+        if (state == null) return;
+        if (state.getItems() == null || state.getItems().isEmpty()) return;
+
+        this.feedItems = new ArrayList<>(state.getItems());
+
+        if (viewPager2 != null && viewPager2.getCurrentItem() != state.getCurrentIndex()) {
+            viewPager2.setCurrentItem(state.getCurrentIndex(), false);
+        }
+
+        if (lastHandledIndex != state.getCurrentIndex()) {
+            handlePageSelected(state.getCurrentIndex(), state.getPreloadRadius());
+            lastHandledIndex = state.getCurrentIndex();
+        }
+    }
+
+    private void handlePageSelected(int position, int preloadRadius) {
         if (feedItems == null || position < 0 || position >= feedItems.size()) return;
 
         // 只让当前页播放
@@ -96,10 +119,9 @@ public class VideoFeedFragment extends Fragment {
             }
         }
 
-        releaseFarPositions(position);
+        releaseFarPositions(position, preloadRadius);
         preparePosition(position, true, 0);
-        preloadNeighbor(position - 1);
-        preloadNeighbor(position + 1);
+        preloadNeighbors(position, preloadRadius);
     }
 
     private void preparePosition(int position, boolean playWhenReady, int retry) {
@@ -121,16 +143,26 @@ public class VideoFeedFragment extends Fragment {
         }
     }
 
+    private void preloadNeighbors(int center, int radius) {
+        if (feedItems == null) return;
+        for (int i = 1; i <= radius; i++) {
+            preloadNeighbor(center - i);
+            preloadNeighbor(center + i);
+        }
+    }
+
     private void preloadNeighbor(int position) {
         if (position < 0 || feedItems == null || position >= feedItems.size()) return;
         preparePosition(position, false, 0);
     }
 
-    private void releaseFarPositions(int centerPosition) {
+    private void releaseFarPositions(int centerPosition, int radius) {
         Set<Integer> keep = new HashSet<>();
         keep.add(centerPosition);
-        keep.add(centerPosition - 1);
-        keep.add(centerPosition + 1);
+        for (int i = 1; i <= radius; i++) {
+            keep.add(centerPosition - i);
+            keep.add(centerPosition + i);
+        }
 
         for (Integer bound : new HashSet<>(playerManager.getBoundPositions())) {
             if (!keep.contains(bound)) {
@@ -145,7 +177,9 @@ public class VideoFeedFragment extends Fragment {
             new ViewPager2.OnPageChangeCallback() {
                 @Override
                 public void onPageSelected(int position) {
-                    handlePageSelected(position);
+                    if (viewModel != null) {
+                        viewModel.onPageSelected(position);
+                    }
                 }
             };
 }

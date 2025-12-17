@@ -29,6 +29,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.GestureDetectorCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.BDhomework.tiktokdemo.R;
 import com.BDhomework.tiktokdemo.comment.CommentBottomSheetDialog;
@@ -42,7 +43,6 @@ import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.android.exoplayer2.ui.TimeBar;
 
-import java.util.Random;
 
 public class VideoPageFragment extends Fragment {
 
@@ -62,13 +62,6 @@ public class VideoPageFragment extends Fragment {
     private TextView descriptionView;
     private TimeBar timeBar;
 
-    private boolean liked = false;
-    private boolean collected = false;
-
-    private int baseCommentCount;
-    private int baseCollectCount;
-    private int baseShareCount;
-
     private boolean isScrubbing = false;
     private boolean wasPlayingBeforeScrub = false;
 
@@ -80,6 +73,7 @@ public class VideoPageFragment extends Fragment {
     private boolean playerListenerAttached = false;
 
     private int position;
+    private VideoFeedViewModel viewModel;
 
     private ImageView coverView;
 
@@ -111,6 +105,8 @@ public class VideoPageFragment extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_video_page, container, false);
+
+        viewModel = new ViewModelProvider(requireParentFragment()).get(VideoFeedViewModel.class);
 
         feedItem = (FeedItem) getArguments().getSerializable(ARG_FEED);
         position = getArguments().getInt(ARG_POSITION, -1);
@@ -160,13 +156,6 @@ public class VideoPageFragment extends Fragment {
 
         if (feedItem != null) {
             author.setText("@" + feedItem.getAuthorName());
-            likeCountView.setText(String.valueOf(feedItem.getLikeCount()));
-            baseCommentCount = 80 + new Random().nextInt(140);
-            baseCollectCount = 50 + new Random().nextInt(120);
-            baseShareCount = new Random().nextInt(200);
-            commentCountView.setText(String.valueOf(baseCommentCount));
-            collectCountView.setText(String.valueOf(baseCollectCount));
-            shareCountView.setText(String.valueOf(baseShareCount));
             bindAvatar(feedItem.getAvatarUrl());
             setupDescription(feedItem.getTitle(), feedItem.getDescription());
 
@@ -260,6 +249,11 @@ public class VideoPageFragment extends Fragment {
                 scheduleProgressUpdate();
             }
         });
+
+        if (viewModel != null) {
+            viewModel.getUiState().observe(getViewLifecycleOwner(), this::renderInteractionState);
+            renderInteractionState(viewModel.getUiState().getValue());
+        }
 
         logCover("onCreateView end");
         return root;
@@ -401,29 +395,49 @@ public class VideoPageFragment extends Fragment {
 
     private void handleDoubleTap(MotionEvent e) {
         showDoubleTapHeart(e.getX(), e.getY());
-        if (!liked) {
-            setLiked(true, true);
+        if (viewModel != null && feedItem != null && !viewModel.isLiked(feedItem.getId())) {
+            viewModel.setLiked(feedItem.getId(), true);
         }
-    }
-
-    private void setLiked(boolean newLiked, boolean updateCount) {
-        liked = newLiked;
-        int baseCount = feedItem != null ? feedItem.getLikeCount() : 0;
-        if (updateCount) {
-            int displayCount = liked ? baseCount + 1 : baseCount;
-            likeCountView.setText(String.valueOf(displayCount));
-        }
-        likeButton.setImageResource(liked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
     }
 
     private void toggleLikeByButton() {
-        setLiked(!liked, true);
+        if (viewModel != null && feedItem != null) {
+            viewModel.toggleLike(feedItem.getId());
+        }
     }
 
     private void toggleCollect() {
-        collected = !collected;
-        int displayCount = collected ? baseCollectCount + 1 : baseCollectCount;
-        collectCountView.setText(String.valueOf(displayCount));
+        if (viewModel != null && feedItem != null) {
+            viewModel.toggleCollect(feedItem.getId());
+        }
+    }
+
+    private void renderInteractionState(@Nullable VideoFeedUiState state) {
+        if (state == null || feedItem == null) return;
+
+        VideoFeedUiState.FeedInteractionState interaction = state.getFeedState(feedItem.getId());
+        boolean liked = interaction != null && interaction.isLiked();
+        boolean collected = interaction != null && interaction.isCollected();
+
+        int likeCount = (interaction != null)
+                ? interaction.getBaseLikeCount() + (liked ? 1 : 0)
+                : feedItem.getLikeCount();
+        int commentCount = (interaction != null)
+                ? interaction.getBaseCommentCount()
+                : safeParseInt(commentCountView.getText().toString());
+        int collectCount = (interaction != null)
+                ? interaction.getBaseCollectCount() + (collected ? 1 : 0)
+                : safeParseInt(collectCountView.getText().toString());
+        int shareCount = (interaction != null)
+                ? interaction.getBaseShareCount()
+                : safeParseInt(shareCountView.getText().toString());
+
+        likeCountView.setText(String.valueOf(likeCount));
+        commentCountView.setText(String.valueOf(commentCount));
+        collectCountView.setText(String.valueOf(collectCount));
+        shareCountView.setText(String.valueOf(shareCount));
+
+        likeButton.setImageResource(liked ? R.drawable.ic_heart_filled : R.drawable.ic_heart_outline);
         collectButton.setImageResource(collected ? R.drawable.ic_star_filled : R.drawable.ic_star_outline);
     }
 
@@ -562,16 +576,17 @@ public class VideoPageFragment extends Fragment {
 
     private void showComments() {
         String id = (feedItem != null) ? feedItem.getId() : "";
-
-        int total = safeParseInt(commentCountView.getText().toString());
-        total = Math.max(total, baseCommentCount);
+        int total = (viewModel != null)
+                ? viewModel.getCommentCount(id, safeParseInt(commentCountView.getText().toString()))
+                : safeParseInt(commentCountView.getText().toString());
 
         CommentBottomSheetDialog dialog = CommentBottomSheetDialog.newInstance(id, total);
         dialog.setViewModelFactory(new CommentViewModelFactory(new MockFeedRepository()));
 
         dialog.setOnCommentAddedListener(newTotal -> {
-            baseCommentCount = newTotal;
-            commentCountView.setText(String.valueOf(newTotal));
+            if (viewModel != null) {
+                viewModel.updateCommentCount(id, newTotal);
+            }
         });
 
         dialog.show(getChildFragmentManager(), "comments");
