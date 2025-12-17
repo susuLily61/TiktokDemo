@@ -89,14 +89,15 @@ public class MockFeedRepository implements FeedRepository {
     private static final List<Comment> BASE_COMMENTS = Arrays.asList(
             new Comment("小明", "太酷了，想去现场看看！"),
             new Comment("Ava", "画质也太好了吧"),
-            new Comment("Coder", "试试看 ExoPlayer 体验如何"),
-            new Comment("路人甲", "双击点赞的动画可以优化~"),
-            new Comment("旅行者", "封面配色很舒服"),
-            new Comment("摄影迷", "后期色调很喜欢"),
-            new Comment("老友", "记得补充字幕~"),
-            new Comment("旅途中的猫", "音乐也好好听"),
-            new Comment("夏日", "拍摄地点在哪里呀"),
-            new Comment("晚风", "请出教程！")
+            new Comment("看见超宇宙SuperCosmic", "有海的城市就是要浪漫一些，双十一忙完给自己放了个小假"),
+            new Comment("布讲栗猫", "真想跪下来求自己别买了。。"),
+            new Comment("旅行者", "下次开团啥时候！"),
+            new Comment("Bigbibi", "网络不好，还不赶快上链接，直接下播了"),
+            new Comment("1-7Bread", "记得补充字幕~"),
+            new Comment("旅途中的猫", "可爱，知道要过圣诞了，快穿上圣诞的衣服，别冻着孩子"),
+            new Comment("夏日", "救命！这小薯的背影已经萌晕我了！它的衣服们看起来都软fufu的"),
+            new Comment("小然的自我修养", "有没有好心人告诉我这是哪家餐厅呀，这个拌饭看起来好好吃"),
+            new Comment("晚风", "啊啊啊啊啊啊人和衣服都好漂亮！我已经期待一月去哈尔滨穿上了！请出教程！")
     );
 
     private static final Map<String, List<Comment>> COMMENT_STORAGE = new HashMap<>();
@@ -119,7 +120,7 @@ public class MockFeedRepository implements FeedRepository {
     }
 
     static {
-        // 你自己决定总共要多少条数据，比如 30 条
+
         int totalCount = 30;
 
         for (int index = 0; index < totalCount; index++) {
@@ -139,7 +140,7 @@ public class MockFeedRepository implements FeedRepository {
 
             String description = DESCRIPTION_POOL.get(index % DESCRIPTION_POOL.size());
 
-            // ✅ 点赞数用一个“看起来像随机的”纯函数，跟 index 绑定，而不是 RANDOM
+            // 点赞数用一个“看起来像随机的”纯函数，跟 index 绑定，而不是 RANDOM
             int likes = 1000 + (index * 37) % 5000;  // 不用 nextInt，保证固定
 
             String date = randomDate();
@@ -177,12 +178,13 @@ public class MockFeedRepository implements FeedRepository {
     private List<Comment> getComments(String feedId) {
         return COMMENT_STORAGE.computeIfAbsent(feedId, id -> {
             List<Comment> list = new ArrayList<>();
-            for (int i = 0; i < 3; i++) {
-                list.addAll(BASE_COMMENTS);
-            }
+            for (int i = 0; i < 3; i++) list.addAll(BASE_COMMENTS);
+            //保证不同视频评论区不一样，但此视频一样，因为按id打乱
+            Collections.shuffle(list, new Random(id.hashCode()));
             return list;
         });
     }
+
 
     @Override
     public CommentPage loadComments(String feedId, int page, int pageSize) {

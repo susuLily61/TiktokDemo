@@ -561,12 +561,27 @@ public class VideoPageFragment extends Fragment {
     }
 
     private void showComments() {
-        CommentBottomSheetDialog dialog = CommentBottomSheetDialog.newInstance(feedItem != null ? feedItem.getId() : "");
+        String id = (feedItem != null) ? feedItem.getId() : "";
+
+        int total = safeParseInt(commentCountView.getText().toString());
+        total = Math.max(total, baseCommentCount);
+
+        CommentBottomSheetDialog dialog = CommentBottomSheetDialog.newInstance(id, total);
         dialog.setViewModelFactory(new CommentViewModelFactory(new MockFeedRepository()));
-        dialog.setOnCommentAddedListener(totalCount ->
-                commentCountView.setText(String.valueOf(Math.max(totalCount, baseCommentCount))));
+
+        dialog.setOnCommentAddedListener(newTotal -> {
+            baseCommentCount = newTotal;
+            commentCountView.setText(String.valueOf(newTotal));
+        });
+
         dialog.show(getChildFragmentManager(), "comments");
     }
+
+    private int safeParseInt(String s) {
+        try { return Integer.parseInt(s.trim()); }
+        catch (Exception e) { return 0; }
+    }
+
 
     // -------- 转盘 --------
 

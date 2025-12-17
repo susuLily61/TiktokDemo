@@ -13,7 +13,7 @@ import java.util.List;
 
 public class CommentViewModel extends ViewModel {
 
-    private static final int PAGE_SIZE = 5;
+    private static final int PAGE_SIZE = 10;
 
     private final FeedRepository repository;
     private final MutableLiveData<CommentUiState> uiState = new MutableLiveData<>(CommentUiState.initial());
