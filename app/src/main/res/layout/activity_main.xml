@@ -68,5 +68,12 @@
 
     </LinearLayout>
 
+    <com.BDhomework.tiktokdemo.ai.DraggableFloatingBall
+        android:id="@+id/ai_floating_ball"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="end|bottom"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="80dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

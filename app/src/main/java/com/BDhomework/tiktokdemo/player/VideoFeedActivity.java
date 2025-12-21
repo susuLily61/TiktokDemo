@@ -1,6 +1,7 @@
 package com.BDhomework.tiktokdemo.player;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
@@ -24,6 +25,8 @@ import com.bumptech.glide.Glide;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import com.BDhomework.tiktokdemo.ai.DraggableFloatingBall;
+import com.BDhomework.tiktokdemo.ai.AiChatActivity;
 
 public class VideoFeedActivity extends AppCompatActivity {
     public static final String EXTRA_FEED_LIST = "extra_feed_list";
@@ -43,6 +46,8 @@ public class VideoFeedActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_feed);
+        DraggableFloatingBall ball = findViewById(R.id.ai_floating_ball_video);
+        ball.setOnClickListener(v -> startActivity(new Intent(this, AiChatActivity.class)));
 
         transitionCover = findViewById(R.id.video_transition_cover);
 

@@ -21,4 +21,14 @@
         android:transitionName="@string/transition_feed_cover"
         android:visibility="invisible" />
 
+
+    <com.BDhomework.tiktokdemo.ai.DraggableFloatingBall
+        android:id="@+id/ai_floating_ball_video"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="end|bottom"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="24dp"/>
+
+
 </FrameLayout>

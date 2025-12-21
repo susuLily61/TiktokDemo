@@ -24,6 +24,10 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ai.AiChatActivity"
+            android:exported="false"/>
+
 
         <activity
             android:name=".player.VideoFeedActivity"

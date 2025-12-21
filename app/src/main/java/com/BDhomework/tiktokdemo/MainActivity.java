@@ -15,6 +15,10 @@ import androidx.fragment.app.FragmentTransaction;
 import com.BDhomework.tiktokdemo.ui.common.PlaceholderFragment;
 import com.BDhomework.tiktokdemo.ui.home.HomeFragment;
 
+import android.content.Intent;
+import com.BDhomework.tiktokdemo.ai.AiChatActivity;
+import com.BDhomework.tiktokdemo.ai.DraggableFloatingBall;
+
 public class MainActivity extends AppCompatActivity {
 
     private TextView navHome;
@@ -31,6 +35,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        DraggableFloatingBall ball = findViewById(R.id.ai_floating_ball);
+        ball.setOnClickListener(v -> startActivity(new Intent(this, AiChatActivity.class)));
 
         // 1. 绑定底部栏控件
         navHome = findViewById(R.id.nav_home);
