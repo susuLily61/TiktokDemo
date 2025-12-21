@@ -172,7 +172,6 @@ public class VideoPageFragment extends Fragment {
             if (coverView != null && feedItem.getCoverUrl() != null) {
                 Glide.with(this)
                         .load(feedItem.getCoverUrl())
-                        .centerCrop()
                         .placeholder(R.drawable.video_placeholder)
                         .into(coverView);
             }
@@ -314,18 +313,19 @@ public class VideoPageFragment extends Fragment {
         }
         setMusicDiscSpinning(playWhenReady);
 
-        // 超级兜底：800ms 后如果在播但封面还在，就强制关（解决极少数不回调 firstFrame）
+        // 超级兜底：800ms 后如果在播但封面还在，就强制关
         playerView.postDelayed(() -> {
             if (!isAdded()) return;
             if (currentPlayer != null && currentPlayer.getPlayWhenReady()) {
                 if (coverView != null && coverView.getVisibility() == View.VISIBLE) {
                     coverView.setVisibility(View.GONE);
-                    if (getActivity() instanceof VideoFeedActivity) {
-                        ((VideoFeedActivity) getActivity()).hideFirstFrameCoverWithFade();
-                    }
                 }
+                // ✅ 不要直接 hideCover，统一走“首帧事件”，让 Activity 自己决定何时隐藏 transitionCover
+                reportFirstFrameOnce();
             }
         }, 800);
+
+
     }
 
     public void clearPlayer() {
@@ -365,6 +365,17 @@ public class VideoPageFragment extends Fragment {
         playerView = null;
     }
 
+    private void reportFirstFrameOnce() {
+        if (firstFrameSent) return;
+        firstFrameSent = true;
+
+        if (getActivity() instanceof VideoFeedActivity) {
+            requireActivity().runOnUiThread(() ->
+                    ((VideoFeedActivity) getActivity()).onFirstFrameRendered()
+            );
+        }
+    }
+
     private void attachPlayerListener() {
         if (playerListenerAttached || currentPlayer == null) return;
 
@@ -382,20 +393,7 @@ public class VideoPageFragment extends Fragment {
                     // 1) 当前页 fragment 内部封面隐藏（你原来就做对了）
                     if (coverView != null) coverView.setVisibility(View.GONE);
 
-                    // 2) 通知外层：只让“当前页”触发一次 Activity 的业务封面淡出
-                    if (!firstFrameSent) {
-                        firstFrameSent = true;
-                        if (firstFrameCallback != null) {
-                            firstFrameCallback.onFirstFrameRendered(position);
-                        } else {
-                            // 兜底：如果 callback 没注入，也可以直接调用 Activity（可选）
-                            if (getActivity() instanceof VideoFeedActivity) {
-                                requireActivity().runOnUiThread(() ->
-                                        ((VideoFeedActivity) getActivity()).hideFirstFrameCoverWithFade()
-                                );
-                            }
-                        }
-                    }
+                    reportFirstFrameOnce();
 
                     logCover("onRenderedFirstFrame AFTER");
                     logPlayerViewLayers("firstFrame AFTER");

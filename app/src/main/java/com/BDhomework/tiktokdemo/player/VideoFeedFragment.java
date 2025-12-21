@@ -205,7 +205,7 @@ public class VideoFeedFragment extends Fragment {
     /**
      * ✅ VideoPageFragment 首帧回调会走到这里：
      * - 只对“当前页”生效（避免预加载页提前触发）
-     * - 只触发一次（进入页面首帧淡出 Activity 的 firstFrameCover）
+     * - 只触发一次：通知 Activity 首帧已出，让 Activity 在“转场结束后”隐藏 transitionCover
      */
     public void onFirstFrameRenderedFromPage(int pos) {
         if (viewModel == null) return;
@@ -216,7 +216,7 @@ public class VideoFeedFragment extends Fragment {
 
         Activity act = getActivity();
         if (act instanceof VideoFeedActivity) {
-            act.runOnUiThread(() -> ((VideoFeedActivity) act).hideFirstFrameCoverWithFade());
+            act.runOnUiThread(() -> ((VideoFeedActivity) act).onFirstFrameRendered());
         }
     }
 }

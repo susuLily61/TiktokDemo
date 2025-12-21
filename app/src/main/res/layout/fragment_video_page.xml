@@ -19,14 +19,24 @@
         app:use_controller="false"
         app:shutter_background_color="@android:color/transparent"
         app:surface_type="texture_view"
+        app:resize_mode="fixed_width"
         app:use_artwork="false">
 
-        <ImageView
+        <com.BDhomework.tiktokdemo.player.FixedWidthImageView
             android:id="@+id/video_cover"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="@android:color/transparent"
-            android:scaleType="centerCrop" />
+            android:background="#000"/>
+
+
+        <FrameLayout
+            android:id="@+id/heart_anim_layer"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:clickable="false"
+            android:clipChildren="false"
+            android:clipToPadding="false" />
+
     </com.google.android.exoplayer2.ui.PlayerView>
 
 
@@ -388,15 +398,4 @@
 
     </LinearLayout>
 
-    <FrameLayout
-        android:id="@+id/heart_anim_layer"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:clickable="false"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
 </androidx.constraintlayout.widget.ConstraintLayout>
