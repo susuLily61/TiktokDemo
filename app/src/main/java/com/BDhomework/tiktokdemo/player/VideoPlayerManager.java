@@ -33,6 +33,7 @@ public class VideoPlayerManager {
     private VideoPlayerManager(Context context) {
         this.appContext = context.getApplicationContext();
         this.loadControl = new DefaultLoadControl.Builder()
+                //开播要快（1.5s 就播），卡住后恢复要稳（2s 再播），最多缓冲到 10s
                 .setBufferDurationsMs(5000, 10000, 1500, 2000)
                 .build();
         initializePlayers();

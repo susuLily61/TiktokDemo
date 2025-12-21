@@ -1,22 +1,29 @@
-<?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- 视频播放 Fragment 容器 -->
+    <!-- 视频播放 Fragment 容器（最底层） -->
     <FrameLayout
         android:id="@+id/video_feed_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#000" />
 
-    <!-- 共享元素：封面过渡层 -->
+    <!-- 业务层封面：用于防黑屏 + 首帧淡出（不参与 shared element） -->
+    <ImageView
+        android:id="@+id/video_first_frame_cover"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="visible" />
+
+    <!-- shared element 层：只负责“卡片放大”转场 -->
     <ImageView
         android:id="@+id/video_transition_cover"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
         android:transitionName="@string/transition_feed_cover"
-        android:visibility="invisible" />
+        android:visibility="visible" />
 
 </FrameLayout>

@@ -83,8 +83,19 @@ public class VideoPageFragment extends Fragment {
     private ImageView playIndicator;      // 中间播放键
     private FrameLayout heartAnimLayer;   // 双击爱心动画容器
 
-    // ✅ 关键：第一帧兜底标记，确保“隐藏封面”只执行一次，且在每次 bind 时重置
+    // 第一帧兜底标记，确保“隐藏封面”只执行一次，且在每次 bind 时重置
     private boolean firstFrameRendered = false;
+
+    private FirstFrameCallback firstFrameCallback;
+    private boolean firstFrameSent = false;
+
+    public void setFirstFrameCallback(FirstFrameCallback cb) {
+        this.firstFrameCallback = cb;
+    }
+    public void setPosition(int pos) {
+        this.position = pos;
+    }
+
 
     public static VideoPageFragment newInstance(FeedItem item, int position) {
         VideoPageFragment fragment = new VideoPageFragment();
@@ -105,7 +116,7 @@ public class VideoPageFragment extends Fragment {
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View root = inflater.inflate(R.layout.fragment_video_page, container, false);
-
+        //不再创建新的 ViewModel，去“父 Fragment”的 ViewModelStore 里取。
         viewModel = new ViewModelProvider(requireParentFragment()).get(VideoFeedViewModel.class);
 
         feedItem = (FeedItem) getArguments().getSerializable(ARG_FEED);
@@ -115,7 +126,6 @@ public class VideoPageFragment extends Fragment {
         playerView = root.findViewById(R.id.video_player_view);
         playerView.setBackgroundColor(Color.TRANSPARENT);
         coverView = root.findViewById(R.id.video_cover);
-
         TextView author = root.findViewById(R.id.video_author);
         descriptionView = root.findViewById(R.id.video_description);
         avatarView = root.findViewById(R.id.video_avatar);
@@ -192,7 +202,7 @@ public class VideoPageFragment extends Fragment {
 
         playerView.setClickable(true);
 
-        // ✅ 更稳：只在 ACTION_UP 时消费 handled，避免影响 ViewPager2 滑动/选中
+        //  更稳：只在 ACTION_UP 时消费 handled，避免影响 ViewPager2 滑动/选中
         playerView.setOnTouchListener((v, event) -> {
             boolean handled = gestureDetector.onTouchEvent(event);
             if (event.getActionMasked() == MotionEvent.ACTION_UP) {
@@ -268,7 +278,7 @@ public class VideoPageFragment extends Fragment {
             return;
         }
 
-        // ② 如果是切换 player，先解旧 listener（不 return）
+        // ② 如果是切换 player，先解旧 listener
         if (currentPlayer != null && currentPlayer != player && playerListenerAttached) {
             currentPlayer.removeListener(playerListener);
             playerListenerAttached = false;
@@ -278,6 +288,7 @@ public class VideoPageFragment extends Fragment {
         videoUrl = url;
 
         firstFrameRendered = false;
+        firstFrameSent = false;
         if (coverView != null) {
             coverView.setAlpha(1f);
             coverView.setVisibility(View.VISIBLE);
@@ -287,7 +298,7 @@ public class VideoPageFragment extends Fragment {
         attachPlayerListener();
 
         player.setPlayWhenReady(playWhenReady);
-        // ✅ 这里补上 prepare，避免某些路径下没 prepare 导致时序怪
+        // 这里补上 prepare，避免某些路径下没 prepare 导致时序怪
         player.prepare();
         logPlayerViewLayers("after prepare");
         logCover("bindPlayer after prepare");
@@ -303,14 +314,14 @@ public class VideoPageFragment extends Fragment {
         }
         setMusicDiscSpinning(playWhenReady);
 
-        // ✅ 超级兜底：800ms 后如果在播但封面还在，就强制关（解决极少数不回调 firstFrame）
+        // 超级兜底：800ms 后如果在播但封面还在，就强制关（解决极少数不回调 firstFrame）
         playerView.postDelayed(() -> {
             if (!isAdded()) return;
             if (currentPlayer != null && currentPlayer.getPlayWhenReady()) {
                 if (coverView != null && coverView.getVisibility() == View.VISIBLE) {
                     coverView.setVisibility(View.GONE);
                     if (getActivity() instanceof VideoFeedActivity) {
-                        ((VideoFeedActivity) getActivity()).hideTransitionCoverWithFade();
+                        ((VideoFeedActivity) getActivity()).hideFirstFrameCoverWithFade();
                     }
                 }
             }
@@ -364,17 +375,32 @@ public class VideoPageFragment extends Fragment {
                 public void onRenderedFirstFrame() {
                     if (firstFrameRendered) return;
                     firstFrameRendered = true;
+
                     logCover("onRenderedFirstFrame BEFORE");
                     logPlayerViewLayers("firstFrame BEFORE");
+
+                    // 1) 当前页 fragment 内部封面隐藏（你原来就做对了）
                     if (coverView != null) coverView.setVisibility(View.GONE);
 
-                    // ✅ 兜底隐藏 Activity 的转场封面（解决你“有声音但封面不消失”的偶发）
-                    if (getActivity() instanceof VideoFeedActivity) {
-                        ((VideoFeedActivity) getActivity()).hideTransitionCoverWithFade();
+                    // 2) 通知外层：只让“当前页”触发一次 Activity 的业务封面淡出
+                    if (!firstFrameSent) {
+                        firstFrameSent = true;
+                        if (firstFrameCallback != null) {
+                            firstFrameCallback.onFirstFrameRendered(position);
+                        } else {
+                            // 兜底：如果 callback 没注入，也可以直接调用 Activity（可选）
+                            if (getActivity() instanceof VideoFeedActivity) {
+                                requireActivity().runOnUiThread(() ->
+                                        ((VideoFeedActivity) getActivity()).hideFirstFrameCoverWithFade()
+                                );
+                            }
+                        }
                     }
+
                     logCover("onRenderedFirstFrame AFTER");
                     logPlayerViewLayers("firstFrame AFTER");
                 }
+
 
                 @Override
                 public void onPlaybackStateChanged(int playbackState) {
@@ -667,21 +693,15 @@ public class VideoPageFragment extends Fragment {
                 ? "null"
                 : ("vis=" + coverView.getVisibility() + ",alpha=" + coverView.getAlpha());
 
-        String act = "no-activity";
-        if (getActivity() instanceof VideoFeedActivity) {
-            act = ((VideoFeedActivity) getActivity()).debugTransitionCoverState();
-        } else {
-            act = "activity-not-VideoFeedActivity";
-        }
-
         Log.d("COVER", where
                 + " pos=" + position
                 + " firstFrame=" + firstFrameRendered
                 + " fragCover(" + frag + ")"
-                + " actCover(" + act + ")"
+                + " actCover(" + "activity-cover-log-disabled" + ")"
                 + " playWhenReady=" + (currentPlayer != null && currentPlayer.getPlayWhenReady())
                 + " state=" + (currentPlayer != null ? currentPlayer.getPlaybackState() : -1));
     }
+
 
     private void logPlayerViewLayers(String where) {
         if (playerView == null) {
@@ -698,5 +718,10 @@ public class VideoPageFragment extends Fragment {
 
         Log.d("PV", where + " pos=" + position + " " + s1 + " " + s2);
     }
+
+    public interface FirstFrameCallback {
+        void onFirstFrameRendered(int position);
+    }
+
 
 }

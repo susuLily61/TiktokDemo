@@ -1,5 +1,6 @@
 package com.BDhomework.tiktokdemo.player;
 
+import android.app.Activity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -29,9 +30,14 @@ public class VideoFeedFragment extends Fragment {
     private VideoPagerAdapter adapter;
     private ArrayList<FeedItem> feedItems;
     private int startPosition = 0;
+
     private VideoPlayerManager playerManager;
     private VideoFeedViewModel viewModel;
+
     private int lastHandledIndex = -1;
+
+    // ✅ 只让“进入页面的第一条首帧”触发一次 Activity 的 firstFrameCover 淡出
+    private boolean firstFrameCoverHidden = false;
 
     public static VideoFeedFragment newInstance(List<FeedItem> feedItems, int startPosition) {
         VideoFeedFragment fragment = new VideoFeedFragment();
@@ -59,15 +65,17 @@ public class VideoFeedFragment extends Fragment {
         viewPager2 = view.findViewById(R.id.video_pager);
 
         if (getArguments() != null) {
+            //noinspection unchecked
             feedItems = (ArrayList<FeedItem>) getArguments().getSerializable(ARG_FEED_LIST);
             startPosition = getArguments().getInt(ARG_START_POSITION, 0);
         }
 
         if (feedItems == null || feedItems.isEmpty()) return;
 
-        viewModel = new ViewModelProvider(this,
-                new VideoFeedViewModel.Factory(feedItems, startPosition))
-                .get(VideoFeedViewModel.class);
+        viewModel = new ViewModelProvider(
+                this,
+                new VideoFeedViewModel.Factory(feedItems, startPosition)
+        ).get(VideoFeedViewModel.class);
 
         adapter = new VideoPagerAdapter(this, new ArrayList<>(feedItems));
         viewPager2.setAdapter(adapter);
@@ -75,7 +83,10 @@ public class VideoFeedFragment extends Fragment {
         viewPager2.registerOnPageChangeCallback(pageChangeCallback);
         viewPager2.setCurrentItem(startPosition, false);
 
+        // Fragment 通过 observe “订阅” UiState
         viewModel.getUiState().observe(getViewLifecycleOwner(), this::renderState);
+
+        // 触发首个 index 的加载/播放
         viewPager2.post(() -> viewModel.onPageSelected(viewModel.getCurrentIndex()));
     }
 
@@ -88,8 +99,13 @@ public class VideoFeedFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        viewPager2.unregisterOnPageChangeCallback(pageChangeCallback);
+
+        if (viewPager2 != null) {
+            viewPager2.unregisterOnPageChangeCallback(pageChangeCallback);
+        }
+
         lastHandledIndex = -1;
+        firstFrameCoverHidden = false;
     }
 
     private void renderState(@Nullable VideoFeedUiState state) {
@@ -129,9 +145,12 @@ public class VideoFeedFragment extends Fragment {
 
         VideoPageFragment fragment = adapter.getFragmentAt(position);
         if (fragment == null || fragment.getPlayerView() == null) {
-            // ✅ fragment 可能还没创建出来：轻量重试几次
+            // fragment 可能还没创建出来：轻量重试几次
             if (retry < 6 && viewPager2 != null) {
-                viewPager2.postDelayed(() -> preparePosition(position, playWhenReady, retry + 1), 50);
+                viewPager2.postDelayed(
+                        () -> preparePosition(position, playWhenReady, retry + 1),
+                        50
+                );
             }
             return;
         }
@@ -182,4 +201,22 @@ public class VideoFeedFragment extends Fragment {
                     }
                 }
             };
+
+    /**
+     * ✅ VideoPageFragment 首帧回调会走到这里：
+     * - 只对“当前页”生效（避免预加载页提前触发）
+     * - 只触发一次（进入页面首帧淡出 Activity 的 firstFrameCover）
+     */
+    public void onFirstFrameRenderedFromPage(int pos) {
+        if (viewModel == null) return;
+        if (pos != viewModel.getCurrentIndex()) return;
+        if (firstFrameCoverHidden) return;
+
+        firstFrameCoverHidden = true;
+
+        Activity act = getActivity();
+        if (act instanceof VideoFeedActivity) {
+            act.runOnUiThread(() -> ((VideoFeedActivity) act).hideFirstFrameCoverWithFade());
+        }
+    }
 }
